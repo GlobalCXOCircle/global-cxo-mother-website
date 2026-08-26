@@ -1,19 +1,7 @@
 "use client"
 import React, { useState, useEffect } from "react"
-import { API_BASE_URL } from "@/portal/api/config"
 
 const SHAREPOINT_LINK = "https://globalcxocircle.sharepoint.com/:f:/s/EventPics/IgAJqikt6aK0RbRi3Kj37uYrAfHomYc1KFuY3Lk0Yh0jTM4?e=8OUcPv"
-
-function getGalleryLeadsEndpoint(): string {
-    let raw = (API_BASE_URL || "").trim().replace(/\/$/, "")
-    if (!raw || raw.startsWith("/") || raw.includes("vercel.app") || raw.includes("global-cxo-mother-website")) {
-        raw = "https://gcio-backend-production.up.railway.app/api"
-    }
-    if (raw.endsWith("/api")) {
-        return `${raw}/events/gallery-leads`
-    }
-    return `${raw}/api/events/gallery-leads`
-}
 
 interface MediaItem {
     id: string
@@ -100,32 +88,16 @@ export default function CIO100MediaAccess() {
                 consent,
             }
 
-            const primaryEndpoint = getGalleryLeadsEndpoint()
-            let res: Response | null = await fetch(primaryEndpoint, {
+            const res = await fetch("/api/gallery-leads", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Accept": "application/json",
                 },
                 body: JSON.stringify(payload),
-            }).catch(() => null)
+            })
 
-            // If primary failed (e.g. env var misconfigured or network block), try direct canonical backend endpoint
-            if (!res || !res.ok) {
-                const fallbackEndpoint = "https://gcio-backend-production.up.railway.app/api/events/gallery-leads"
-                if (primaryEndpoint !== fallbackEndpoint) {
-                    res = await fetch(fallbackEndpoint, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Accept": "application/json",
-                        },
-                        body: JSON.stringify(payload),
-                    }).catch(() => null)
-                }
-            }
-
-            if (res && res.ok) {
+            if (res.ok) {
                 setStatus("success")
                 try {
                     localStorage.setItem(
@@ -137,7 +109,7 @@ export default function CIO100MediaAccess() {
                 return
             }
 
-            const data = res ? await res.json().catch(() => ({})) : {}
+            const data = await res.json().catch(() => ({}))
             let errMsg = "Failed to record response. Please try again."
             if (typeof data?.detail === "string") {
                 errMsg = data.detail
@@ -145,7 +117,7 @@ export default function CIO100MediaAccess() {
                 errMsg = data.detail.map((e: any) => e.msg || JSON.stringify(e)).join(", ")
             } else if (data?.error) {
                 errMsg = String(data.error)
-            } else if (res && res.status) {
+            } else if (res.status) {
                 errMsg = `Server error (${res.status}). Please try again.`
             }
 
