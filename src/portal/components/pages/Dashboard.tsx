@@ -106,22 +106,30 @@ function formatDateTime(iso: string): string {
 }
 
 function ProfileField({ label, value }: { label: string; value: string }): React.ReactElement {
-  const isLink = value.startsWith('http');
+  const isLink = Boolean(value && (value.startsWith('http://') || value.startsWith('https://')));
+  const isLinkedIn = label.toLowerCase().includes('linkedin');
+
+  const getDisplayLinkText = () => {
+    if (isLinkedIn) return 'View LinkedIn Profile';
+    if (label.toLowerCase().includes('website') || label.toLowerCase().includes('url')) return 'Visit Website';
+    return 'Click here';
+  };
+
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</span>
+    <div className="flex flex-col gap-1">
+      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{label}</span>
       {isLink ? (
         <a
           href={value}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-blue-600 hover:underline break-all flex items-center gap-1"
+          className="text-sm font-medium text-blue-600 hover:text-blue-800 underline underline-offset-4 decoration-blue-300 hover:decoration-blue-600 inline-flex items-center gap-1.5 transition-colors w-fit"
         >
-          {value}
-          <ExternalLink size={12} />
+          <span>{getDisplayLinkText()}</span>
+          <ExternalLink size={13} className="shrink-0 opacity-70" />
         </a>
       ) : (
-        <span className="text-sm text-gray-800 break-words">{value}</span>
+        <span className="text-sm text-gray-800 font-medium break-words">{value?.trim() || '—'}</span>
       )}
     </div>
   );

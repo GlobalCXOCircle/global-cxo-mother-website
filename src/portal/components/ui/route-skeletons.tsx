@@ -112,8 +112,8 @@ export function UserDashboardSkeleton(): JSX.Element {
     <div className="min-h-screen">
       <section className="pt-24 pb-10 bg-gradient-to-br from-bg-dark via-white to-bg-light">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-2">
-          <SkeletonBlock className="h-8 w-40" />
-          <SkeletonBlock className="h-5 w-72 max-w-full" />
+          <SkeletonBlock className="h-8 w-44" />
+          <SkeletonBlock className="h-5 w-80 max-w-full" />
         </div>
       </section>
       <section className="py-8">
@@ -123,15 +123,15 @@ export function UserDashboardSkeleton(): JSX.Element {
             <div className="lg:col-span-1">
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-6 flex flex-col items-center">
                 <SkeletonBlock className="h-20 w-20 rounded-full" />
-                <SkeletonBlock className="mt-4 h-5 w-32" />
-                <SkeletonBlock className="mt-2 h-5 w-20 rounded-full" />
-                <SkeletonBlock className="mt-3 h-3 w-36" />
+                <SkeletonBlock className="mt-4 h-5 w-36" />
+                <SkeletonBlock className="mt-2 h-5 w-16 rounded-full" />
+                <SkeletonBlock className="mt-3 h-3 w-40" />
                 <div className="my-5 h-px w-full bg-slate-100" />
-                <div className="w-full space-y-3">
+                <div className="w-full space-y-4">
                   {[0, 1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="space-y-1">
-                      <SkeletonBlock className="h-2 w-16" />
-                      <SkeletonBlock className="h-3 w-full" />
+                    <div key={i} className="space-y-1.5">
+                      <SkeletonBlock className="h-2.5 w-16" />
+                      <SkeletonBlock className="h-3.5 w-full" />
                     </div>
                   ))}
                 </div>
@@ -142,19 +142,33 @@ export function UserDashboardSkeleton(): JSX.Element {
                 </div>
               </div>
             </div>
-            {/* Right column — content cards */}
-            <div className="lg:col-span-2 space-y-8">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-3"
-                  style={{ opacity: Math.max(0.5, 1 - i * 0.15) }}
-                >
-                  <SkeletonBlock className="h-5 w-32" />
-                  <SkeletonBlock className="h-3 w-full" />
-                  <SkeletonBlock className="h-3 w-4/5" />
+            {/* Right column — matches My Events and session cards */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Card 1: My Events */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+                <div className="flex items-center gap-2">
+                  <SkeletonBlock className="h-5 w-5 rounded-md" />
+                  <SkeletonBlock className="h-5 w-28" />
                 </div>
-              ))}
+                <div className="flex flex-col items-center justify-center py-10 space-y-4 text-center">
+                  <SkeletonBlock className="h-4 w-64 max-w-full" />
+                  <SkeletonBlock className="h-9 w-32 rounded-lg" />
+                </div>
+              </div>
+              {/* Card 2: 1:1 Strategy Sessions */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <SkeletonBlock className="h-5 w-5 rounded-md" />
+                    <SkeletonBlock className="h-5 w-48" />
+                  </div>
+                  <SkeletonBlock className="h-8 w-28 rounded-lg" />
+                </div>
+                <div className="space-y-3 pt-2">
+                  <SkeletonBlock className="h-16 w-full rounded-lg" />
+                  <SkeletonBlock className="h-16 w-full rounded-lg" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
