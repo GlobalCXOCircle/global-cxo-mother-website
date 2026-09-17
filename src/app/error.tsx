@@ -16,7 +16,7 @@ export default function GlobalError({ error, reset }: { error: Error; reset: () 
          const now = Date.now();
          if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
             sessionStorage.setItem('chunk_reload_ts', String(now));
-            window.location.reload();
+            window.location.href = window.location.pathname + (window.location.search ? window.location.search + '&' : '?') + '_r=' + now;
          }
       }
    }, [error]);
@@ -28,12 +28,13 @@ export default function GlobalError({ error, reset }: { error: Error; reset: () 
          <button 
             onClick={() => {
                if (typeof window !== 'undefined') {
-                  window.location.reload();
+                  const now = Date.now();
+                  window.location.href = window.location.pathname + (window.location.search ? window.location.search + '&' : '?') + '_r=' + now;
                } else {
                   reset();
                }
             }}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors"
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors cursor-pointer"
          >
             Reload Page
          </button>
