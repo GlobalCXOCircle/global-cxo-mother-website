@@ -108,11 +108,11 @@ az webapp up --name gcio-backend-prod --resource-group rg-gcxo-prod-eastus --run
 In your frontend codebase, update `.env.local` (and your deployment environment settings in Azure/Vercel):
 
 ```env
-NEXT_PUBLIC_API_BASE_URL=https://<your-backend-app-name>.azurewebsites.net/api
+NEXT_PUBLIC_API_BASE_URL=https://backendgcxo-hfdrd8cugtepfpcs.centralus-01.azurewebsites.net/api
 NEXT_PUBLIC_USE_API_AUTH=true
 ```
 
-*(Replace `<your-backend-app-name>` with your actual Azure backend App Service name, e.g., `gcio-backend-prod.azurewebsites.net`).*
+*(Live verified Azure backend endpoint: `https://backendgcxo-hfdrd8cugtepfpcs.centralus-01.azurewebsites.net/api`).*
 
 The frontend API configuration ([`src/portal/api/config.ts`](file:///c:/Users/himan/Desktop/global-cxo-mother-website/src/portal/api/config.ts)) automatically reads `NEXT_PUBLIC_API_BASE_URL` at build/runtime.
 
