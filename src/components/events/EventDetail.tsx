@@ -48,6 +48,8 @@ function isInternalUrl(url?: string): boolean {
         return (
             host === 'globalcxocircle.com' ||
             host.endsWith('.globalcxocircle.com') ||
+            host.endsWith('.azurestaticapps.net') ||
+            host.endsWith('.azurewebsites.net') ||
             host === 'global-cxo-mother-website.vercel.app' ||
             host.endsWith('.vercel.app') ||
             (typeof window !== 'undefined' && host === window.location.hostname)

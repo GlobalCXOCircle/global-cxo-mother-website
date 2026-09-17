@@ -7,8 +7,8 @@ const SHAREPOINT_LINK = "https://globalcxocircle.sharepoint.com/:f:/s/EventPics/
 const DIRECT_BACKEND_ENDPOINT = `${API_BASE_URL}/events/gallery-leads`
 
 function getGalleryLeadsEndpoint(): string {
-    // Primary: use the Next.js API proxy (same-origin, avoids corporate firewall blocks)
-    return "/api/gallery-leads"
+    // In static export (Azure Static Web Apps), direct backend endpoint is used
+    return DIRECT_BACKEND_ENDPOINT
 }
 
 interface MediaItem {
