@@ -6,8 +6,6 @@
       "/_next/*",
       "/images/*",
       "/assets/*",
-      "/events/*",
-      "/gallery/*",
       "/fonts/*",
       "*.{png,jpg,jpeg,gif,svg,webp,ico,txt,xml,json,woff,woff2,ttf,eot,css,js,map}"
     ]
