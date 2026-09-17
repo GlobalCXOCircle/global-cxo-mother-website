@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE_URL = 'https://gcio-backend-production.up.railway.app/api';
+const DEFAULT_API_BASE_URL = 'https://backendgcxo-hfdrd8cugtepfpcs.centralus-01.azurewebsites.net/api';
 
 function resolveApiBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();

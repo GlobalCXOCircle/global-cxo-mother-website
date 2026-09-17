@@ -1,4 +1,4 @@
-const DEFAULT_BACKEND_URL = "https://gcio-backend-production.up.railway.app"
+const DEFAULT_BACKEND_URL = "https://backendgcxo-hfdrd8cugtepfpcs.centralus-01.azurewebsites.net"
 
 export function getGalleryLeadsBackendEndpoint(): string {
   const envUrl = (process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL)?.trim()
