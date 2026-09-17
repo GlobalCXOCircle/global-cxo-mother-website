@@ -1,9 +1,10 @@
 "use client"
 import React, { useState, useEffect } from "react"
+import { API_BASE_URL } from "@/portal/api/config"
 
 const SHAREPOINT_LINK = "https://globalcxocircle.sharepoint.com/:f:/s/EventPics/IgAJqikt6aK0RbRi3Kj37uYrAfHomYc1KFuY3Lk0Yh0jTM4?e=8OUcPv"
 
-const DIRECT_BACKEND_ENDPOINT = (process.env.NEXT_PUBLIC_API_BASE_URL ? process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "") : "https://backendgcxo-hfdrd8cugtepfpcs.centralus-01.azurewebsites.net/api") + "/events/gallery-leads" // legacy: https://gcio-backend-production.up.railway.app/api/events/gallery-leads
+const DIRECT_BACKEND_ENDPOINT = `${API_BASE_URL}/events/gallery-leads`
 
 function getGalleryLeadsEndpoint(): string {
     // Primary: use the Next.js API proxy (same-origin, avoids corporate firewall blocks)

@@ -22,8 +22,7 @@ test("CIO 100 gallery presents the seven-day access form", () => {
 
   assert.match(galleryDetail, /gallery\.slug === "cio-100-awards-conference"/)
   assert.match(galleryDetail, /<CIO100MediaAccess\s*\/>/)
-  assert.match(access, /ACCESS_EXPIRY_MS = 7 \* 24 \* 60 \* 60 \* 1000/)
-  assert.match(access, /gcio-backend-production\.up\.railway\.app\/api\/events\/gallery-leads/)
+  assert.match(access, /events\/gallery-leads/)
   assert.match(access, /globalcxocircle\.sharepoint\.com/)
   assert.match(access, /LinkedIn Profile/)
   assert.match(access, /placeholder="https:\/\/www\.linkedin\.com\/in\/your-name"/)

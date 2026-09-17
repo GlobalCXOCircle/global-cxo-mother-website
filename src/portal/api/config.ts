@@ -1,12 +1,9 @@
-const DEFAULT_API_BASE_URL = 'https://backendgcxo-hfdrd8cugtepfpcs.centralus-01.azurewebsites.net/api';
-
 function resolveApiBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
-  let base = envUrl && envUrl.length > 0 ? envUrl : DEFAULT_API_BASE_URL;
-  if (!base.startsWith('http://') && !base.startsWith('https://')) {
-    base = DEFAULT_API_BASE_URL;
+  if (!envUrl) {
+    return '/api';
   }
-  base = base.replace(/\/$/, '');
+  let base = envUrl.replace(/\/$/, '');
   if (!base.endsWith('/api') && !base.includes('/api/')) {
     base = `${base}/api`;
   }
