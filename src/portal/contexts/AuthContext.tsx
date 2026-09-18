@@ -199,7 +199,7 @@ export interface AuthContextType {
     sponsors?: Array<{ name: string; logo: string; website?: string }>;
     itinerary?: Array<{ date: string; time: string; title: string; description: string; type: string; timeOfDay: string; sponsors?: string[]; speakers?: string[] }>;
   }) => Promise<EventDetail>;
-  updateEvent: (slug: string, updates: EventMutationInput) => EventDetail | null;
+  updateEvent: (slug: string, updates: EventMutationInput, skipApiPatch?: boolean) => EventDetail | null;
   deleteEvent: (slug: string) => Promise<number | undefined>;
   updateEventVisibility: (slug: string, settings: VisibilitySetting) => void;
   registerForEvent: (eventId: string) => Promise<{ success: boolean; message: string }>;
@@ -1304,7 +1304,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   );
 
   const updateEvent = useCallback(
-    (slug: string, updates: EventMutationInput): EventDetail | null => {
+    (slug: string, updates: EventMutationInput, skipApiPatch?: boolean): EventDetail | null => {
       const existing = events.find((event) => event.slug === slug);
       if (!existing) return null;
 
@@ -1396,7 +1396,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
         // Keep the UI optimistic even if local persistence fails.
       });
 
-      if (USE_API_AUTH) {
+      if (USE_API_AUTH && !skipApiPatch) {
         const bid = backendEventIdBySlug[slug];
         if (bid) {
           const body: Record<string, unknown> = {};
@@ -1405,6 +1405,8 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
           if (updates.location !== undefined) body.location = updates.location.trim();
           if (updates.description !== undefined) body.description = updates.description.trim();
           if (updates.overview !== undefined) body.overview = updates.overview.trim();
+          if (updates.heroImage !== undefined) body.hero_image = updates.heroImage.trim();
+          if (updates.bannerImage !== undefined) body.banner_image = updates.bannerImage.trim();
           if (updates.registrationOpen !== undefined) body.registration_open = updates.registrationOpen;
           if (updates.lifecycleStatus !== undefined) body.lifecycle_status = updates.lifecycleStatus;
           if (updates.lumaUrl !== undefined) {
@@ -1413,12 +1415,19 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
           if (updates.galleryUrl !== undefined) {
             body.gallery_url = updates.galleryUrl.trim() || null;
           }
-          if (updates.venueName !== undefined || updates.venueAddress !== undefined || updates.venueDescription !== undefined) {
+          if (
+            updates.venueName !== undefined ||
+            updates.venueAddress !== undefined ||
+            updates.venueDescription !== undefined ||
+            updates.venueImage !== undefined ||
+            updates.venueMapEmbedUrl !== undefined
+          ) {
             body.venue = {
               name: updates.venueName?.trim() ?? existing.venue.name,
               address: updates.venueAddress?.trim() ?? existing.venue.address,
               description: updates.venueDescription?.trim() ?? existing.venue.description,
-              image: existing.venue.image,
+              image: updates.venueImage?.trim() ?? existing.venue.image,
+              mapEmbedUrl: updates.venueMapEmbedUrl?.trim() ?? existing.venue.mapEmbedUrl ?? '',
             };
           }
           if (updates.objectives !== undefined) {
