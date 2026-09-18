@@ -1,5 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
+import ProtectedEmail from "@/components/common/ProtectedEmail";
 import InjectableSvg from "@/components/common/InjectableSvg";
 import Icon from "@/components/common/Icon";
 
@@ -52,7 +53,7 @@ const OffCanvas = ({ offCanvas, setOffCanvas }: MobileSidebarProps) => {
                </div>
                <div className="contact-list">
                   <i className="flaticon-envelope"></i>
-                  <Link href="mailto:ram@100exnextgen.com">ram@100exnextgen.com</Link>
+                  <ProtectedEmail user="contactus" domain="globalcxocircle.com" />
                </div>
             </div>
             <div className="offCanvas__social">

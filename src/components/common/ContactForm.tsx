@@ -15,6 +15,14 @@ const ContactForm = () => {
 
       const form = e.currentTarget
       const formData = new FormData(form)
+      const botCheck = formData.get("botcheck") as string
+
+      // Bot trap: Silently drop if honeypot was populated
+      if (botCheck) {
+         setStatus("success")
+         form.reset()
+         return
+      }
 
       try {
          const res = await fetch("https://api.web3forms.com/submit", {
@@ -26,6 +34,7 @@ const ContactForm = () => {
                email: formData.get("user_email"),
                message: formData.get("message"),
                subject: `New message from ${formData.get("user_name")}`,
+               botcheck: botCheck || undefined,
             }),
          })
 
@@ -46,6 +55,10 @@ const ContactForm = () => {
 
    return (
       <form onSubmit={handleSubmit} className="contact__form">
+         {/* Honeypot field for bot protection */}
+         <div style={{ position: "absolute", opacity: 0, zIndex: -1, width: 0, height: 0, overflow: "hidden", pointerEvents: "none" }} aria-hidden="true">
+            <input type="text" name="botcheck" tabIndex={-1} autoComplete="new-password" />
+         </div>
          <div className="form-grp">
             <label htmlFor="user_name">Your Name</label>
             <input id="user_name" name="user_name" type="text" placeholder="Enter your name" required />

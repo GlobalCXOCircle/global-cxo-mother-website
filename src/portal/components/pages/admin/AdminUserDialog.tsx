@@ -6,6 +6,7 @@ import { Button } from '@/portal/components/ui/button';
 import { Input } from '@/portal/components/ui/input';
 import { Label } from '@/portal/components/ui/label';
 import { Textarea } from '@/portal/components/ui/textarea';
+import { ImageUpload } from '@/portal/components/ui/image-upload';
 import { usePrograms, useCohorts } from '@/portal/hooks/usePrograms';
 import { SandboxToggle } from './SandboxToggle';
 export type EnterpriseSize = 'L' | 'M' | 'S' | null;
@@ -320,17 +321,14 @@ export function AdminUserDialog({
             <Label htmlFor="user-test" className="text-amber-600">Test user (skip required fields)</Label>
           </div>
           <div className="grid gap-2 md:col-span-2">
-            <Label htmlFor="user-avatar">Profile Photo URL</Label>
-            <Input
-              id="user-avatar"
+            <ImageUpload
+              label="Profile Photo"
               value={form.avatarUrl}
-              readOnly={isReadOnly}
-              onChange={(e) => updateField('avatarUrl', e.target.value)}
-              placeholder="https://example.com/photo.jpg"
+              onChange={(v) => updateField('avatarUrl', v)}
+              placeholder="Paste image URL or upload photo..."
+              folder="avatars"
+              previewHeight="h-16"
             />
-            {form.avatarUrl && (
-              <img src={form.avatarUrl} alt="Avatar preview" className="h-12 w-12 rounded-full object-cover border" />
-            )}
           </div>
           <div className="grid gap-2 md:col-span-2">
             <Label htmlFor="user-about">About Me</Label>

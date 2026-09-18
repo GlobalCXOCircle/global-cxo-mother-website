@@ -145,15 +145,15 @@ export function UserDashboardSkeleton(): JSX.Element {
             {/* Right column — matches My Events and session cards */}
             <div className="lg:col-span-2 space-y-6">
               {/* Card 1: My Events */}
-              <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-6">
-                <div className="flex items-center gap-2">
-                  <SkeletonBlock className="h-5 w-5 rounded-md" />
-                  <SkeletonBlock className="h-5 w-28" />
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <SkeletonBlock className="h-5 w-5 rounded-md" />
+                    <SkeletonBlock className="h-5 w-28" />
+                  </div>
+                  <SkeletonBlock className="h-8 w-28 rounded-md" />
                 </div>
-                <div className="flex flex-col items-center justify-center py-10 space-y-4 text-center">
-                  <SkeletonBlock className="h-4 w-64 max-w-full" />
-                  <SkeletonBlock className="h-9 w-32 rounded-lg" />
-                </div>
+                <SkeletonBlock className="h-4 w-72 max-w-full" />
               </div>
               {/* Card 2: 1:1 Strategy Sessions */}
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-4">

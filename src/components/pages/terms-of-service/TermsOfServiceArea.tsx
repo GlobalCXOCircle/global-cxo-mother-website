@@ -1,3 +1,5 @@
+import ProtectedEmail from "@/components/common/ProtectedEmail";
+
 const TermsOfServiceArea = () => {
   const lastUpdated = "May 5, 2026";
 
@@ -49,7 +51,7 @@ const TermsOfServiceArea = () => {
               <address style={{ fontStyle: "normal", background: "#f8f8f8", borderRadius: "10px", padding: "20px 24px", marginTop: "12px", borderLeft: "4px solid var(--tg-theme-primary)" }}>
                 <strong>Global CXO Circle</strong><br />
                 San Francisco, CA<br />
-                Email: <a href="mailto:contactus@globalcxocircle.com" style={{ color: "var(--tg-theme-primary)" }}>contactus@globalcxocircle.com</a>
+                Email: <ProtectedEmail user="contactus" domain="globalcxocircle.com" style={{ color: "var(--tg-theme-primary)" }} />
               </address>
 
             </div>

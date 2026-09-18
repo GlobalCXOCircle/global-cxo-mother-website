@@ -1,8 +1,9 @@
 "use client"
-import React, { useState, type CSSProperties } from "react"
+import React, { useState, useRef, useEffect, type CSSProperties } from "react"
 import Header from "@/layouts/headers/Header"
 import Footer from "@/layouts/footers/Footer"
 import AnimateOnScroll from "@/components/ui/AnimateOnScroll"
+import ProtectedEmail from "@/components/common/ProtectedEmail"
 
 const WEB3FORMS_ACCESS_KEY = "b6e38651-6009-4ab0-a71d-c98ddda90dfa"
 const CALENDLY_URL = "https://calendly.com/leningali/30min"
@@ -21,9 +22,15 @@ const ContactPage = () => {
     const [phone, setPhone] = useState("")
     const [company, setCompany] = useState("")
     const [message, setMessage] = useState("")
+    const [botCheck, setBotCheck] = useState("") // Honeypot trap for bots
     const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; phone?: string; message?: string }>({})
     const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle")
     const [errorMsg, setErrorMsg] = useState("")
+    const formLoadedAt = useRef<number>(Date.now())
+
+    useEffect(() => {
+        formLoadedAt.current = Date.now()
+    }, [])
 
     const validate = () => {
         const errors: typeof fieldErrors = {}
@@ -48,6 +55,21 @@ const ContactPage = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!validate()) return
+
+        // Anti-Bot Protection 1: If the hidden honeypot was populated, an automated bot filled it out.
+        // Silently succeed so the bot doesn't retry, but discard the payload completely.
+        if (botCheck.trim()) {
+            setStatus("success")
+            return
+        }
+
+        // Anti-Bot Protection 2: Rapid-submission check. Real humans cannot type name, email,
+        // and message in under 1.8 seconds.
+        if (Date.now() - formLoadedAt.current < 1800) {
+            setStatus("success")
+            return
+        }
+
         setStatus("sending")
         setErrorMsg("")
         try {
@@ -62,6 +84,7 @@ const ContactPage = () => {
                     company: company.trim() || "Not provided",
                     message: message.trim(),
                     subject: `New Contact Form Inquiry from ${name.trim()}`,
+                    botcheck: botCheck.trim() || undefined,
                 }),
             })
             const data = (await res.json()) as { success?: boolean; message?: string }
@@ -141,6 +164,19 @@ const ContactPage = () => {
                                         ) : (
                                             <form onSubmit={handleSubmit} noValidate>
                                                 <div className="row gutter-y-14">
+                                                    {/* Honeypot trap: hidden from humans, catches automated form-filler bots */}
+                                                    <div style={{ position: "absolute", opacity: 0, zIndex: -1, width: 0, height: 0, overflow: "hidden", pointerEvents: "none" }} aria-hidden="true">
+                                                        <label htmlFor="website_botcheck">Leave this field blank</label>
+                                                        <input
+                                                            type="text"
+                                                            id="website_botcheck"
+                                                            name="botcheck"
+                                                            tabIndex={-1}
+                                                            autoComplete="new-password"
+                                                            value={botCheck}
+                                                            onChange={(e) => setBotCheck(e.target.value)}
+                                                        />
+                                                    </div>
                                                     <div className="col-12">
                                                         <label style={labelStyle}>Full Name<Required /></label>
                                                         <input type="text" value={name}
@@ -212,9 +248,11 @@ const ContactPage = () => {
                                                 </div>
                                                 <div>
                                                     <h4 style={{ fontSize: "13.5px", fontWeight: 700, color: "var(--tg-heading-color)", marginBottom: "3px" }}>Email</h4>
-                                                    <a href="mailto:contactus@globalcxocircle.com" style={{ fontSize: "14.5px", color: "var(--tg-theme-primary)", fontWeight: 600, textDecoration: "none" }}>
-                                                        contactus@globalcxocircle.com
-                                                    </a>
+                                                    <ProtectedEmail
+                                                        user="contactus"
+                                                        domain="globalcxocircle.com"
+                                                        style={{ fontSize: "14.5px", color: "var(--tg-theme-primary)", fontWeight: 600, textDecoration: "none" }}
+                                                    />
                                                 </div>
                                             </div>
                                             <div style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>

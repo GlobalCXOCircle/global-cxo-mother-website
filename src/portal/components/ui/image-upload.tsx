@@ -1,9 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
-import { Upload, X, Link as LinkIcon } from 'lucide-react';
+import { Upload, X, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { Input } from '@/portal/components/ui/input';
 import { Button } from '@/portal/components/ui/button';
-import { API_BASE_URL } from '@/portal/api/config';
-import { getStoredAccessToken } from '@/portal/api/tokenStorage';
+import { apiFetch } from '@/portal/api/client';
 import { toast } from 'sonner';
 
 interface ImageUploadProps {
@@ -15,57 +14,8 @@ interface ImageUploadProps {
   folder?: string;
 }
 
-function compressImageFile(file: File, maxWidth = 1600, maxHeight = 1600, quality = 0.85): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (file.type === 'image/svg+xml' || file.type.includes('icon')) {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-      return;
-    }
-
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      let { width, height } = img;
-      if (width > maxWidth || height > maxHeight) {
-        if (width / height > maxWidth / maxHeight) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        } else {
-          width = Math.round((width * maxHeight) / height);
-          height = maxHeight;
-        }
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-        return;
-      }
-
-      ctx.drawImage(img, 0, 0, width, height);
-      const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-      resolve(canvas.toDataURL(mime, quality));
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    };
-    img.src = url;
-  });
-}
+const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MiB
 
 export function ImageUpload({
   value,
@@ -84,46 +34,43 @@ export function ImageUpload({
       const file = e.target.files?.[0];
       if (!file) return;
 
+      const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+      if (!ALLOWED_EXTENSIONS.includes(ext)) {
+        toast.error(`Unsupported file type (${ext || 'unknown'}). Please choose a JPG, PNG, WebP, or GIF image.`);
+        if (fileRef.current) fileRef.current.value = '';
+        return;
+      }
+
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        toast.error(`File is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum allowed size is 10MB.`);
+        if (fileRef.current) fileRef.current.value = '';
+        return;
+      }
+
       setUploading(true);
-      let uploadedUrl: string | null = null;
 
       try {
         const formData = new FormData();
         formData.append('file', file);
 
-        const token = getStoredAccessToken();
-        const headers: Record<string, string> = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        const res = await fetch(`${API_BASE_URL}/uploads?folder=${encodeURIComponent(folder)}`, {
-          method: 'POST',
-          headers,
-          body: formData,
-          credentials: 'include',
-        }).catch(() => null);
-
-        if (res && res.ok) {
-          const data: { url?: string } = await res.json().catch(() => ({}));
-          if (data.url) {
-            uploadedUrl = data.url;
+        const data = await apiFetch<{ url?: string; filename?: string; storage?: string }>(
+          `/uploads?folder=${encodeURIComponent(folder)}`,
+          {
+            method: 'POST',
+            body: formData,
           }
-        }
-      } catch {
-        // Quietly fallback to client-side compressed image
-      }
+        );
 
-      try {
-        if (uploadedUrl) {
-          onChange(uploadedUrl);
-          toast.success(`Image uploaded: ${file.name}`);
+        if (data?.url) {
+          onChange(data.url);
+          toast.success(`Image uploaded to Azure Storage: ${file.name}`);
         } else {
-          const dataUrl = await compressImageFile(file);
-          onChange(dataUrl);
-          toast.success(`Image attached: ${file.name}`);
+          throw new Error('Upload finished but storage URL was missing from server response.');
         }
-      } catch (readErr) {
-        console.error('Failed to process image file:', readErr);
-        toast.error(`Could not process image file ${file.name}`);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Image upload failed. Please try again.';
+        console.error('Azure Blob upload error:', err);
+        toast.error(`Upload failed: ${message}`);
       } finally {
         setUploading(false);
         if (fileRef.current) fileRef.current.value = '';
@@ -162,17 +109,30 @@ export function ImageUpload({
         />
       ) : (
         <div
-          onClick={() => fileRef.current?.click()}
-          className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 hover:border-blue-400 bg-slate-50 px-4 py-3 cursor-pointer transition-colors"
+          onClick={() => {
+            if (!uploading) fileRef.current?.click();
+          }}
+          className={`flex items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-3 transition-colors ${
+            uploading
+              ? 'border-blue-300 bg-blue-50/50 cursor-wait'
+              : 'border-slate-300 hover:border-blue-400 bg-slate-50 cursor-pointer'
+          }`}
         >
-          <Upload className="h-4 w-4 text-slate-400" />
-          <span className="text-sm text-slate-500">
-            {uploading ? 'Uploading...' : 'Click to choose a file'}
-          </span>
+          {uploading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+              <span className="text-sm text-blue-700 font-medium">Uploading to Azure Storage...</span>
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4 text-slate-400" />
+              <span className="text-sm text-slate-500">Click to choose a file (JPG, PNG, WebP up to 10MB)</span>
+            </>
+          )}
           <input
             ref={fileRef}
             type="file"
-            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/svg+xml,image/avif,image/*"
+            accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif"
             className="hidden"
             onChange={handleFileChange}
             disabled={uploading}

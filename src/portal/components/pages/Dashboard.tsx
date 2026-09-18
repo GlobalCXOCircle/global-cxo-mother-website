@@ -466,25 +466,28 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Right Column */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="lg:col-span-2 space-y-6">
               {/* My Events */}
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                   <CardTitle className="flex items-center gap-2">
                     <CalendarDays size={20} />
-                    My Events
+                    <span>My Events</span>
+                    {userRegistrations.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 text-xs font-normal">
+                        {userRegistrations.length}
+                      </Badge>
+                    )}
                   </CardTitle>
+                  <Button asChild variant="outline" size="sm" className="h-8 text-xs font-medium">
+                    <Link to="/events">Browse Events</Link>
+                  </Button>
                 </CardHeader>
-                <CardContent>
+                <CardContent className={userRegistrations.length === 0 ? 'pt-0 pb-4' : 'pt-1'}>
                   {userRegistrations.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500 mb-4">
-                        You haven&apos;t registered for any events yet.
-                      </p>
-                      <Button asChild variant="outline">
-                        <Link to="/events">Browse Events</Link>
-                      </Button>
-                    </div>
+                    <p className="text-sm text-gray-500 py-1">
+                      You haven&apos;t registered for any events yet.
+                    </p>
                   ) : (
                     <div className="divide-y">
                       {userRegistrations.map((reg) => {
@@ -1133,11 +1136,9 @@ const Dashboard: React.FC = () => {
                   ) : (
                     !sessionsLoading &&
                     meetingRequests.length === 0 && (
-                      <div className="text-center py-8">
-                        <p className="text-gray-500 mb-4">
-                          No sessions yet. Request one to get started.
-                        </p>
-                      </div>
+                      <p className="text-sm text-gray-500 py-1">
+                        No sessions yet. Request one to get started.
+                      </p>
                     )
                   )}
                 </CardContent>
@@ -1147,28 +1148,30 @@ const Dashboard: React.FC = () => {
               {/* My Startup — only for startup tier */}
               {user.tier === 'startup' && (
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                     <CardTitle className="flex items-center gap-2">
                       <Globe size={20} />
-                      My Startup
+                      <span>My Startup</span>
                     </CardTitle>
+                    {!linkedStartup && (
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs font-medium"
+                      >
+                        <Link to="/startup-profile" className="flex items-center gap-1.5">
+                          <PlusCircle size={14} />
+                          Create Profile
+                        </Link>
+                      </Button>
+                    )}
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className={!linkedStartup ? 'pt-0 pb-4' : 'pt-1'}>
                     {!linkedStartup ? (
-                      <div className="text-center py-8">
-                        <p className="text-gray-500 mb-4">
-                          You haven&apos;t linked to a startup yet.
-                        </p>
-                        <Button
-                          asChild
-                          variant="outline"
-                        >
-                          <Link to="/startup-profile" className="flex items-center gap-2">
-                            <PlusCircle size={16} />
-                            Create Startup Profile
-                          </Link>
-                        </Button>
-                      </div>
+                      <p className="text-sm text-gray-500 py-1">
+                        You haven&apos;t linked to a startup yet.
+                      </p>
                     ) : (
                       <div className="space-y-4">
                         <div>
