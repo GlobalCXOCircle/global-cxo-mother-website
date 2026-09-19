@@ -63,13 +63,13 @@ export function ImageUpload({
 
         if (data?.url) {
           onChange(data.url);
-          toast.success(`Image uploaded to Azure Storage: ${file.name}`);
+          toast.success(`${file.name} uploaded successfully`);
         } else {
           throw new Error('Upload finished but storage URL was missing from server response.');
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Image upload failed. Please try again.';
-        console.error('Azure Blob upload error:', err);
+        console.error('Image upload error:', err);
         toast.error(`Upload failed: ${message}`);
       } finally {
         setUploading(false);
@@ -121,7 +121,7 @@ export function ImageUpload({
           {uploading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-              <span className="text-sm text-blue-700 font-medium">Uploading to Azure Storage...</span>
+              <span className="text-sm text-blue-700 font-medium">Uploading image...</span>
             </>
           ) : (
             <>
