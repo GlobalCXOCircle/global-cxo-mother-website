@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, type FormEvent } from "react"
-
-const WEB3FORMS_ACCESS_KEY = "b6e38651-6009-4ab0-a71d-c98ddda90dfa"
+import { submitContactFormApi } from "@/portal/api/leads"
 
 const ContactForm = () => {
    const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle")
@@ -25,31 +24,25 @@ const ContactForm = () => {
       }
 
       try {
-         const res = await fetch("https://api.web3forms.com/submit", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-               access_key: WEB3FORMS_ACCESS_KEY,
-               name: formData.get("user_name"),
-               email: formData.get("user_email"),
-               message: formData.get("message"),
-               subject: `New message from ${formData.get("user_name")}`,
-               botcheck: botCheck || undefined,
-            }),
+         const data = await submitContactFormApi({
+            name: String(formData.get("user_name") || "").trim(),
+            email: String(formData.get("user_email") || "").trim(),
+            message: String(formData.get("message") || "").trim(),
+            subject: `New message from ${formData.get("user_name")}`,
+            source: "contact-widget",
+            botcheck: botCheck || undefined,
          })
 
-         const data = (await res.json()) as { success?: boolean; message?: string }
-
-         if (res.ok && data.success) {
+         if (data?.success) {
             setStatus("success")
             form.reset()
          } else {
             setStatus("error")
-            setErrorMsg(data.message || "Failed to send message.")
+            setErrorMsg(data?.message || "Failed to send message.")
          }
-      } catch {
+      } catch (err: any) {
          setStatus("error")
-         setErrorMsg("Email service is temporarily unavailable. Please try again shortly.")
+         setErrorMsg(err?.message || "Email service is temporarily unavailable. Please try again shortly.")
       }
    }
 

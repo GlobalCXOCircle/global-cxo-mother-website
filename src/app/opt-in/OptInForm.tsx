@@ -5,8 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import Header from "@/layouts/headers/Header"
 import Footer from "@/layouts/footers/Footer"
 import { Check, Mail, User, ShieldAlert, CheckCircle2, ChevronRight } from "lucide-react"
-
-const LAZYFORMS_ENDPOINT = "https://api.lazyforms.com/f/ad9a16cd-2208-4c0c-bca7-6ac8244cdc9a"
+import { submitOptInFormApi } from "@/portal/api/leads"
 
 /* ------------------------------------------------------------------ */
 /* Motion helpers                                                      */
@@ -92,26 +91,19 @@ export default function OptInForm() {
       return
     }
 
-    const formData = new FormData()
-    formData.append("_honey", "") // Honeypot field for spam protection
-    formData.append("timestamp", new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }))
-    formData.append("firstName", firstName.trim())
-    formData.append("lastName", lastName.trim())
-    formData.append("email", normalizedEmail)
-    formData.append("name", `${firstName.trim()} ${lastName.trim()}`)
-    formData.append("mailingList", joinCircle === "yes" ? "Yes" : "No")
-    formData.append("joinCircle", learnMore === "yes" ? "Yes" : "No")
-
     setSubmitting(true)
     try {
-      const response = await fetch(LAZYFORMS_ENDPOINT, {
-        method: "POST",
-        body: formData,
+      const data = await submitOptInFormApi({
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        email: normalizedEmail,
+        mailing_list: joinCircle === "yes",
+        join_circle: learnMore === "yes",
+        source: "opt-in-page",
       })
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        setSubmitError((data as any).message || "Failed to submit response. Please try again.")
+      if (!data?.success) {
+        setSubmitError(data?.message || "Failed to submit response. Please try again.")
         return
       }
 
@@ -120,9 +112,9 @@ export default function OptInForm() {
       localStorage.setItem("opt_in_submitted", JSON.stringify(submittedEmails))
 
       setSubmitted(true)
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      setSubmitError("There was an error submitting your response. Please try again.")
+      setSubmitError(err?.message || "There was an error submitting your response. Please try again.")
     } finally {
       setSubmitting(false)
     }

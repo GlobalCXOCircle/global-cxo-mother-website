@@ -4,8 +4,8 @@ import Header from "@/layouts/headers/Header"
 import Footer from "@/layouts/footers/Footer"
 import AnimateOnScroll from "@/components/ui/AnimateOnScroll"
 import ProtectedEmail from "@/components/common/ProtectedEmail"
+import { submitContactFormApi } from "@/portal/api/leads"
 
-const WEB3FORMS_ACCESS_KEY = "b6e38651-6009-4ab0-a71d-c98ddda90dfa"
 const CALENDLY_URL = "https://calendly.com/leningali/30min"
 
 const labelStyle: CSSProperties = { display: "block", fontSize: "13px", fontWeight: 600, color: "var(--tg-heading-color)", marginBottom: "5px" }
@@ -73,30 +73,25 @@ const ContactPage = () => {
         setStatus("sending")
         setErrorMsg("")
         try {
-            const res = await fetch("https://api.web3forms.com/submit", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    access_key: WEB3FORMS_ACCESS_KEY,
-                    name: name.trim(),
-                    email: email.trim(),
-                    phone: phone.trim() || "Not provided",
-                    company: company.trim() || "Not provided",
-                    message: message.trim(),
-                    subject: `New Contact Form Inquiry from ${name.trim()}`,
-                    botcheck: botCheck.trim() || undefined,
-                }),
+            const data = await submitContactFormApi({
+                name: name.trim(),
+                email: email.trim(),
+                phone: phone.trim() || undefined,
+                company: company.trim() || undefined,
+                message: message.trim(),
+                subject: `New Contact Form Inquiry from ${name.trim()}`,
+                source: "contact-page",
+                botcheck: botCheck.trim() || undefined,
             })
-            const data = (await res.json()) as { success?: boolean; message?: string }
-            if (res.ok && data.success) {
+            if (data?.success) {
                 setStatus("success")
             } else {
                 setStatus("error")
-                setErrorMsg(data.message || "Failed to send message.")
+                setErrorMsg(data?.message || "Failed to send message.")
             }
-        } catch {
+        } catch (err: any) {
             setStatus("error")
-            setErrorMsg("Email service is temporarily unavailable. Please try again shortly.")
+            setErrorMsg(err?.message || "Email service is temporarily unavailable. Please try again shortly.")
         }
     }
 
