@@ -45,3 +45,6 @@ MIGRATION_NEXT_STEPS.md
 
 # workspace
 *.code-workspace
+
+# local scripts
+rename_script.js
