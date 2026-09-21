@@ -5,9 +5,7 @@ import Header from "@/layouts/headers/Header"
 import Footer from "@/layouts/footers/Footer"
 import AnimateOnScroll from "@/components/ui/AnimateOnScroll"
 import awardsData from "@/data/AwardsData"
-
-// Same Web3Forms inbox the contact form delivers to.
-const WEB3FORMS_ACCESS_KEY = "b6e38651-6009-4ab0-a71d-c98ddda90dfa"
+import { submitNominateFormApi } from "@/portal/api/leads"
 
 const labelStyle: CSSProperties = { display: "block", fontSize: "13px", fontWeight: 600, color: "var(--tg-heading-color)", marginBottom: "5px" }
 const inputStyle: CSSProperties = {
@@ -61,32 +59,25 @@ const NominatePage = () => {
         setStatus("sending")
         setErrorMsg("")
         try {
-            const res = await fetch("https://api.web3forms.com/submit", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    access_key: WEB3FORMS_ACCESS_KEY,
-                    subject: `New Award Nomination: ${nomineeName.trim()}`,
-                    name: yourName.trim(),
-                    email: yourEmail.trim(),
-                    nominee_name: nomineeName.trim(),
-                    nominee_role_company: nomineeRole.trim(),
-                    nominee_linkedin: nomineeLinkedin.trim() || "Not provided",
-                    award_category: category,
-                    relationship_to_nominee: relationship.trim() || "Not provided",
-                    reasons_to_nominate: reasons.trim(),
-                }),
+            const data = await submitNominateFormApi({
+                nominee_name: nomineeName.trim(),
+                nominee_role_company: nomineeRole.trim(),
+                ...(nomineeLinkedin.trim() ? { nominee_linkedin: nomineeLinkedin.trim() } : {}),
+                award_category: category,
+                reasons: reasons.trim(),
+                nominator_name: yourName.trim(),
+                nominator_email: yourEmail.trim(),
+                ...(relationship.trim() ? { relationship: relationship.trim() } : {}),
             })
-            const data = (await res.json()) as { success?: boolean; message?: string }
-            if (res.ok && data.success) {
+            if (data?.success) {
                 setStatus("success")
             } else {
                 setStatus("error")
-                setErrorMsg(data.message || "Failed to submit the nomination. Please try again.")
+                setErrorMsg(data?.message || "Failed to submit the nomination. Please try again.")
             }
-        } catch {
+        } catch (err: any) {
             setStatus("error")
-            setErrorMsg("The service is temporarily unavailable. Please try again shortly.")
+            setErrorMsg(err?.message || "The service is temporarily unavailable. Please try again shortly.")
         }
     }
 

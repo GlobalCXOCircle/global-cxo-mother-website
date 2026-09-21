@@ -59,7 +59,8 @@ const ProgramDashboard = React.lazy(() => import('@/portal/components/pages/Prog
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
       retry: (failureCount, error) => {
         // Never retry auth failures — they won't resolve on retry
         if (error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401) return false;

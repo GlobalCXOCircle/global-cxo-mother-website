@@ -1,5 +1,6 @@
 "use client"
 import Link from "next/link"
+import ProtectedEmail from "@/components/common/ProtectedEmail"
 
 type FooterLink = { label: string; href: string }
 type FooterColumn = { title: string; links: FooterLink[] }
@@ -40,8 +41,6 @@ const columns: FooterColumn[] = [
    },
 ]
 
-const CONTACT_EMAIL = "contactus@globalcxocircle.com"
-
 const Footer = () => {
    const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, link: string) => {
       if (link.startsWith('/#') && typeof window !== 'undefined' && window.location.pathname === '/') {
@@ -68,12 +67,11 @@ const Footer = () => {
                   <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.6)", lineHeight: 1.75, maxWidth: "340px", marginBottom: "22px" }}>
                      The premier ecosystem for executive alignment and enterprise outcomes — where global CXOs connect, align, and execute together.
                   </p>
-                  <a href={`mailto:${CONTACT_EMAIL}`} className="footer-email">
+                  <ProtectedEmail user="contactus" domain="globalcxocircle.com" className="footer-email">
                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-10 6L2 7" />
                      </svg>
-                     {CONTACT_EMAIL}
-                  </a>
+                  </ProtectedEmail>
                </div>
 
                {columns.map((col) => (

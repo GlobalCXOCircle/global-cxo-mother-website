@@ -22,15 +22,21 @@ function mergeWithStaticEvents(loaded: EventDetailType[]): EventDetailType[] {
             merged.set(ev.slug, {
                 ...staticEv,
                 ...ev,
-                heroImage: staticEv.heroImage || ev.heroImage,
-                heroImageMobile: staticEv.heroImageMobile || ev.heroImageMobile || staticEv.heroImage,
-                cardImage: staticEv.cardImage || ev.cardImage || staticEv.heroImage,
-                bannerImage: staticEv.bannerImage || ev.bannerImage,
-                gallery: staticEv.gallery?.length ? staticEv.gallery : ev.gallery,
-                speakers: staticEv.speakers?.length ? staticEv.speakers : ev.speakers,
-                sponsors: staticEv.sponsors?.length ? staticEv.sponsors : ev.sponsors,
-                itinerary: staticEv.itinerary?.length ? staticEv.itinerary : ev.itinerary,
-                highlightCards: staticEv.highlightCards?.length ? staticEv.highlightCards : ev.highlightCards,
+                heroImage: ev.heroImage || staticEv.heroImage,
+                heroImageMobile: ev.heroImageMobile || staticEv.heroImageMobile || ev.heroImage,
+                cardImage: ev.cardImage || staticEv.cardImage || ev.heroImage,
+                bannerImage: ev.bannerImage || staticEv.bannerImage,
+                gallery: ev.gallery?.length ? ev.gallery : staticEv.gallery,
+                speakers: ev.speakers?.length ? ev.speakers : staticEv.speakers,
+                sponsors: ev.sponsors?.length ? staticEv.sponsors : ev.sponsors,
+                itinerary: ev.itinerary?.length ? ev.itinerary : staticEv.itinerary,
+                highlightCards: ev.highlightCards?.length ? ev.highlightCards : staticEv.highlightCards,
+                venue: {
+                    ...staticEv.venue,
+                    ...ev.venue,
+                    image: ev.venue?.image || staticEv.venue?.image,
+                    mapEmbedUrl: ev.venue?.mapEmbedUrl || staticEv.venue?.mapEmbedUrl,
+                },
             })
         } else {
             merged.set(ev.slug, ev)
@@ -48,6 +54,8 @@ function isInternalUrl(url?: string): boolean {
         return (
             host === 'globalcxocircle.com' ||
             host.endsWith('.globalcxocircle.com') ||
+            host.endsWith('.azurestaticapps.net') ||
+            host.endsWith('.azurewebsites.net') ||
             host === 'global-cxo-mother-website.vercel.app' ||
             host.endsWith('.vercel.app') ||
             (typeof window !== 'undefined' && host === window.location.hostname)

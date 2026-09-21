@@ -51,13 +51,14 @@ function GenericRouteSkeleton(): React.ReactElement {
 // child route) behind one auth check, so this is the only place that knows
 // which real page is about to render before it does.
 function RouteLoadingSkeleton({ pathname }: { pathname: string }): React.ReactElement {
-  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
-    return <AdminShellSkeleton pathname={pathname} />;
+  const cleanPath = pathname.replace(/\/+$/, '') || '/';
+  if (cleanPath === '/admin' || cleanPath.startsWith('/admin/')) {
+    return <AdminShellSkeleton pathname={cleanPath} />;
   }
-  if (pathname === '/dashboard') {
+  if (cleanPath === '/dashboard') {
     return <UserDashboardSkeleton />;
   }
-  if (pathname === '/settings') {
+  if (cleanPath === '/settings') {
     return <UserSettingsSkeleton />;
   }
   return <GenericRouteSkeleton />;

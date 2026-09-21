@@ -1,13 +1,15 @@
 "use client"
 import React, { useState, useEffect } from "react"
+import ProtectedEmail from "@/components/common/ProtectedEmail"
+import { API_BASE_URL } from "@/portal/api/config"
 
 const SHAREPOINT_LINK = "https://globalcxocircle.sharepoint.com/:f:/s/EventPics/IgAJqikt6aK0RbRi3Kj37uYrAfHomYc1KFuY3Lk0Yh0jTM4?e=8OUcPv"
 
-const DIRECT_BACKEND_ENDPOINT = "https://gcio-backend-production.up.railway.app/api/events/gallery-leads"
+const DIRECT_BACKEND_ENDPOINT = `${API_BASE_URL}/events/gallery-leads`
 
 function getGalleryLeadsEndpoint(): string {
-    // Primary: use the Next.js API proxy (same-origin, avoids corporate firewall blocks)
-    return "/api/gallery-leads"
+    // In static export (Azure Static Web Apps), direct backend endpoint is used
+    return DIRECT_BACKEND_ENDPOINT
 }
 
 interface MediaItem {
@@ -533,9 +535,11 @@ export default function CIO100MediaAccess() {
                         <div className="text-center" style={{ marginTop: "32px", paddingTop: "18px", borderTop: "1px solid #f1f5f9" }}>
                             <p style={{ fontSize: "13.5px", color: "var(--tg-body-color, #64748b)", margin: 0 }}>
                                 Having trouble downloading? Contact us at{" "}
-                                <a href="mailto:info@globalcxocircle.com" style={{ color: "var(--tg-theme-primary, #0a3cc2)", fontWeight: 600 }}>
-                                    info@globalcxocircle.com
-                                </a>
+                                <ProtectedEmail
+                                    user="info"
+                                    domain="globalcxocircle.com"
+                                    style={{ color: "var(--tg-theme-primary, #0a3cc2)", fontWeight: 600 }}
+                                />
                             </p>
                         </div>
                     </div>

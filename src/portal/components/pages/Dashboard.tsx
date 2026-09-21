@@ -106,22 +106,30 @@ function formatDateTime(iso: string): string {
 }
 
 function ProfileField({ label, value }: { label: string; value: string }): React.ReactElement {
-  const isLink = value.startsWith('http');
+  const isLink = Boolean(value && (value.startsWith('http://') || value.startsWith('https://')));
+  const isLinkedIn = label.toLowerCase().includes('linkedin');
+
+  const getDisplayLinkText = () => {
+    if (isLinkedIn) return 'View LinkedIn';
+    if (label.toLowerCase().includes('website') || label.toLowerCase().includes('url')) return 'Visit Website';
+    return 'Click here';
+  };
+
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</span>
+    <div className="flex flex-col gap-0.5 min-w-0">
+      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{label}</span>
       {isLink ? (
         <a
           href={value}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-blue-600 hover:underline break-all flex items-center gap-1"
+          className="text-xs font-medium text-blue-600 hover:text-blue-800 underline underline-offset-2 decoration-blue-300 hover:decoration-blue-600 inline-flex items-center gap-1 transition-colors w-fit truncate max-w-full"
         >
-          {value}
-          <ExternalLink size={12} />
+          <span className="truncate">{getDisplayLinkText()}</span>
+          <ExternalLink size={11} className="shrink-0 opacity-70" />
         </a>
       ) : (
-        <span className="text-sm text-gray-800 break-words">{value}</span>
+        <span className="text-xs text-gray-800 font-medium break-words">{value?.trim() || '—'}</span>
       )}
     </div>
   );
@@ -286,19 +294,19 @@ const Dashboard: React.FC = () => {
             {/* Left Column — Profile Card */}
             <div className="lg:col-span-1">
               <Card className="sticky top-28">
-                <CardContent className="pt-8 pb-6 flex flex-col items-center text-center">
-                  <div className="w-20 h-20 rounded-full bg-navy-600 text-white flex items-center justify-center text-2xl font-bold mb-4">
+                <CardContent className="p-4 sm:p-5 flex flex-col items-center text-center">
+                  <div className="w-16 h-16 rounded-full bg-navy-600 text-white flex items-center justify-center text-xl font-bold mb-2">
                     {getInitials(user.name)}
                   </div>
-                  <h2 className="text-xl font-bold text-navy-dark">{user.name}</h2>
-                  <Badge className={`mt-2 ${TIER_STYLES[user.tier]}`}>
+                  <h2 className="text-lg font-bold text-navy-dark leading-tight">{user.name}</h2>
+                  <Badge className={`mt-1.5 ${TIER_STYLES[user.tier]}`}>
                     {user.tier.toUpperCase()}
                   </Badge>
                   {programLoading && !myProgramContext && (
-                    <div className="mt-2 h-5 w-36 rounded-full bg-slate-200 animate-pulse" />
+                    <div className="mt-1.5 h-4 w-28 rounded-full bg-slate-200 animate-pulse" />
                   )}
                   {hasActiveProgramEnrollment && primaryProgram && (
-                    <div className="mt-2 space-y-1 flex flex-col items-center">
+                    <div className="mt-1.5 space-y-0.5 flex flex-col items-center">
                       <Badge className={COHORT_BADGE_STYLE}>
                         {primaryProgram.name}
                         {canSeeFinancials && myProgramEnrollment?.pricing_tier
@@ -314,35 +322,39 @@ const Dashboard: React.FC = () => {
                       </span>
                     </div>
                   )}
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="text-xs text-gray-400 mt-1">
                     Member since {formatDate(user.createdAt)}
                   </p>
 
-                  <Separator className="my-5 w-full" />
+                  <Separator className="my-3 w-full" />
 
-                  <div className="w-full space-y-4 text-left">
+                  <div className="w-full space-y-2.5 text-left">
                     <ProfileField label="Email" value={user.email} />
-                    <ProfileField label="Phone" value={user.phone} />
-                    <ProfileField label="LinkedIn" value={user.linkedin} />
-                    <ProfileField label="Company" value={user.companyAffiliation} />
-                    <ProfileField label="Role" value={user.role} />
+                    <div className="grid grid-cols-2 gap-2">
+                      <ProfileField label="Company" value={user.companyAffiliation} />
+                      <ProfileField label="Role" value={user.role} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <ProfileField label="Phone" value={user.phone} />
+                      <ProfileField label="LinkedIn" value={user.linkedin} />
+                    </div>
                     <ProfileField label="About Me" value={user.aboutMe} />
                   </div>
 
-                  <Separator className="my-5 w-full" />
+                  <Separator className="my-3 w-full" />
 
                   {/* Action cluster: stacked, icon-first, consistent sizing */}
-                  <div className="w-full space-y-2">
+                  <div className="w-full space-y-1.5">
                     <Dialog open={editOpen} onOpenChange={setEditOpen}>
                       <DialogTrigger asChild>
                         <Button
                           variant="outline"
-                          className="w-full justify-start gap-2 h-10 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                          className="w-full justify-start gap-2 h-9 text-xs border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
+                            width="14"
+                            height="14"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -432,22 +444,22 @@ const Dashboard: React.FC = () => {
                     {hasActiveProgramEnrollment && (
                       <Button
                         variant="outline"
-                        className="w-full justify-start gap-2 h-10 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                        className="w-full justify-start gap-2 h-9 text-xs border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900"
                         onClick={() => void openManageCalendar()}
                       >
-                        <Calendar className="h-4 w-4" />
+                        <Calendar className="h-3.5 w-3.5" />
                         <span className="flex-1 text-left">Manage Calendar</span>
-                        <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
+                        <ExternalLink className="h-3 w-3 text-slate-400" />
                       </Button>
                     )}
 
                     {(user.tier === 'admin' || user.tier === 'dev') && (
                       <Button
                         asChild
-                        className="w-full justify-start gap-2 h-10 bg-navy-700 hover:bg-navy-800 shadow-sm"
+                        className="w-full justify-start gap-2 h-9 text-xs bg-navy-700 hover:bg-navy-800 shadow-sm"
                       >
                         <Link to="/admin">
-                          <Shield className="h-4 w-4" />
+                          <Shield className="h-3.5 w-3.5" />
                           <span className="flex-1 text-left">Open Admin Dashboard</span>
                         </Link>
                       </Button>
@@ -458,25 +470,28 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Right Column */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="lg:col-span-2 space-y-6">
               {/* My Events */}
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                   <CardTitle className="flex items-center gap-2">
                     <CalendarDays size={20} />
-                    My Events
+                    <span>My Events</span>
+                    {userRegistrations.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 text-xs font-normal">
+                        {userRegistrations.length}
+                      </Badge>
+                    )}
                   </CardTitle>
+                  <Button asChild variant="outline" size="sm" className="h-8 text-xs font-medium">
+                    <Link to="/events">Browse Events</Link>
+                  </Button>
                 </CardHeader>
-                <CardContent>
+                <CardContent className={userRegistrations.length === 0 ? 'pt-0 pb-4' : 'pt-1'}>
                   {userRegistrations.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500 mb-4">
-                        You haven&apos;t registered for any events yet.
-                      </p>
-                      <Button asChild variant="outline">
-                        <Link to="/events">Browse Events</Link>
-                      </Button>
-                    </div>
+                    <p className="text-sm text-gray-500 py-1">
+                      You haven&apos;t registered for any events yet.
+                    </p>
                   ) : (
                     <div className="divide-y">
                       {userRegistrations.map((reg) => {
@@ -1125,11 +1140,9 @@ const Dashboard: React.FC = () => {
                   ) : (
                     !sessionsLoading &&
                     meetingRequests.length === 0 && (
-                      <div className="text-center py-8">
-                        <p className="text-gray-500 mb-4">
-                          No sessions yet. Request one to get started.
-                        </p>
-                      </div>
+                      <p className="text-sm text-gray-500 py-1">
+                        No sessions yet. Request one to get started.
+                      </p>
                     )
                   )}
                 </CardContent>
@@ -1139,28 +1152,30 @@ const Dashboard: React.FC = () => {
               {/* My Startup — only for startup tier */}
               {user.tier === 'startup' && (
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                     <CardTitle className="flex items-center gap-2">
                       <Globe size={20} />
-                      My Startup
+                      <span>My Startup</span>
                     </CardTitle>
+                    {!linkedStartup && (
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs font-medium"
+                      >
+                        <Link to="/startup-profile" className="flex items-center gap-1.5">
+                          <PlusCircle size={14} />
+                          Create Profile
+                        </Link>
+                      </Button>
+                    )}
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className={!linkedStartup ? 'pt-0 pb-4' : 'pt-1'}>
                     {!linkedStartup ? (
-                      <div className="text-center py-8">
-                        <p className="text-gray-500 mb-4">
-                          You haven&apos;t linked to a startup yet.
-                        </p>
-                        <Button
-                          asChild
-                          variant="outline"
-                        >
-                          <Link to="/startup-profile" className="flex items-center gap-2">
-                            <PlusCircle size={16} />
-                            Create Startup Profile
-                          </Link>
-                        </Button>
-                      </div>
+                      <p className="text-sm text-gray-500 py-1">
+                        You haven&apos;t linked to a startup yet.
+                      </p>
                     ) : (
                       <div className="space-y-4">
                         <div>

@@ -55,7 +55,7 @@ import {
 import { createStartupApi, listStartupLinksApi, listStartupsApi, patchStartupApi } from '@/portal/api/startups';
 import { adminCreateUserApi, deleteUserApi, listUsersApi, patchUserApi, type PatchUserBody } from '@/portal/api/users';
 import { ApiError } from '@/portal/api/errors';
-import { getStoredAccessToken, setStoredAccessToken } from '@/portal/api/tokenStorage';
+import { getStoredAccessToken, setStoredAccessToken, getStoredUser, setStoredUser } from '@/portal/api/tokenStorage';
 import { getMockSessionUserId, setMockSessionUserId } from '@/portal/lib/mockSession';
 import { loadMockDatabaseSnapshot, persistMockDatabaseSnapshot } from '@/portal/lib/mockDatabase';
 import { toast } from 'sonner';
@@ -199,7 +199,7 @@ export interface AuthContextType {
     sponsors?: Array<{ name: string; logo: string; website?: string }>;
     itinerary?: Array<{ date: string; time: string; title: string; description: string; type: string; timeOfDay: string; sponsors?: string[]; speakers?: string[] }>;
   }) => Promise<EventDetail>;
-  updateEvent: (slug: string, updates: EventMutationInput) => EventDetail | null;
+  updateEvent: (slug: string, updates: EventMutationInput, skipApiPatch?: boolean) => EventDetail | null;
   deleteEvent: (slug: string) => Promise<number | undefined>;
   updateEventVisibility: (slug: string, settings: VisibilitySetting) => void;
   registerForEvent: (eventId: string) => Promise<{ success: boolean; message: string }>;
@@ -395,7 +395,10 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   const [mockSessionUserId, setMockSessionUserIdState] = useState<string | null>(() =>
     USE_API_AUTH ? null : getMockSessionUserId(),
   );
-  const [apiSessionUser, setApiSessionUser] = useState<MockUser | null>(null);
+  const [apiSessionUser, setApiSessionUser] = useState<MockUser | null>(() => {
+    if (!USE_API_AUTH) return null;
+    return getStoredAccessToken() ? getStoredUser() : null;
+  });
   const [authHydrated, setAuthHydrated] = useState<boolean>(() => !USE_API_AUTH);
   // Mock mode has its data available synchronously from `initialSnapshot`,
   // so the catalog is already "hydrated" on mount. Live mode starts as
@@ -442,91 +445,99 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
     }
     const failedResources: string[] = [];
 
-    try {
-      const rawEvents = await listEventsApi(200);
-      const demoSalon = rawEvents.find((e) => e.slug === 'gcio-demo-salon-2026');
-      if (demoSalon) {
-        void deleteEventApi(String(demoSalon.id)).catch(() => {});
-      }
-      const idBySlug: Record<string, string> = {};
-      rawEvents.forEach((e) => {
-        idBySlug[e.slug] = String(e.id);
-      });
-      setBackendEventIdBySlug(idBySlug);
-
-      const vis: EventVisibilityMap = {};
-      rawEvents.forEach((e) => {
-        vis[e.slug] = mapVisibilityFromApi(e.visibility_setting);
-      });
-      setEventVisibility(vis);
-
-      const regChunks = await Promise.all(
-        rawEvents.map((e) =>
-          listEventRegistrationsApi(String(e.id), e.slug).catch(() => [] as MockEventRegistration[]),
-        ),
-      );
-      const flatRegs = regChunks.flat();
-      setRegistrations(flatRegs);
-
-      const countBySlug = new Map<string, number>();
-      flatRegs.forEach((r) => {
-        countBySlug.set(r.eventId, (countBySlug.get(r.eventId) ?? 0) + 1);
-      });
-      const localSnap = loadMockDatabaseSnapshot().events;
-      const localMap = new Map(localSnap.map((e) => [e.slug, e]));
-
-      const detailList = rawEvents
-        .filter((e) => !deletedEventSlugsRef.current.has(e.slug))
-        .map((e) => {
-          const mapped = mapApiEventToEventDetail(e, countBySlug.get(e.slug) ?? 0);
-          const localOverride = localMap.get(e.slug);
-          if (localOverride) {
-            return {
-              ...mapped,
-              lifecycleStatus: localOverride.lifecycleStatus ?? mapped.lifecycleStatus,
-              registrationOpen: localOverride.registrationOpen ?? mapped.registrationOpen,
-            };
-          }
-          return mapped;
-        });
-
-      const existingSlugs = new Set(detailList.map((e) => e.slug));
-      eventsData.forEach((defaultEv) => {
-        if (!existingSlugs.has(defaultEv.slug) && !deletedEventSlugsRef.current.has(defaultEv.slug)) {
-          const localOverride = localMap.get(defaultEv.slug);
-          detailList.push(localOverride || defaultEv);
+    const fetchEventsPromise = (async () => {
+      try {
+        const rawEvents = await listEventsApi(200);
+        const demoSalon = rawEvents.find((e) => e.slug === 'gcio-demo-salon-2026');
+        if (demoSalon) {
+          void deleteEventApi(String(demoSalon.id)).catch(() => {});
         }
-      });
-      setEvents(detailList);
-    } catch {
-      failedResources.push('events');
-    }
+        const idBySlug: Record<string, string> = {};
+        rawEvents.forEach((e) => {
+          idBySlug[e.slug] = String(e.id);
+        });
+        setBackendEventIdBySlug(idBySlug);
 
-    try {
-      const allUsers: MockUser[] = [];
-      let offset = 0;
-      const batchSize = 500;
-      while (true) {
-        const batch = await listUsersApi(batchSize, offset);
-        allUsers.push(...batch);
-        if (batch.length < batchSize) break;
-        offset += batchSize;
+        const vis: EventVisibilityMap = {};
+        rawEvents.forEach((e) => {
+          vis[e.slug] = mapVisibilityFromApi(e.visibility_setting);
+        });
+        setEventVisibility(vis);
+
+        const regChunks = await Promise.all(
+          rawEvents.map((e) =>
+            listEventRegistrationsApi(String(e.id), e.slug).catch(() => [] as MockEventRegistration[]),
+          ),
+        );
+        const flatRegs = regChunks.flat();
+        setRegistrations(flatRegs);
+
+        const countBySlug = new Map<string, number>();
+        flatRegs.forEach((r) => {
+          countBySlug.set(r.eventId, (countBySlug.get(r.eventId) ?? 0) + 1);
+        });
+        const localSnap = loadMockDatabaseSnapshot().events;
+        const localMap = new Map(localSnap.map((e) => [e.slug, e]));
+
+        const detailList = rawEvents
+          .filter((e) => !deletedEventSlugsRef.current.has(e.slug))
+          .map((e) => {
+            const mapped = mapApiEventToEventDetail(e, countBySlug.get(e.slug) ?? 0);
+            const localOverride = localMap.get(e.slug);
+            if (localOverride) {
+              return {
+                ...mapped,
+                lifecycleStatus: localOverride.lifecycleStatus ?? mapped.lifecycleStatus,
+                registrationOpen: localOverride.registrationOpen ?? mapped.registrationOpen,
+              };
+            }
+            return mapped;
+          });
+
+        const existingSlugs = new Set(detailList.map((e) => e.slug));
+        eventsData.forEach((defaultEv) => {
+          if (!existingSlugs.has(defaultEv.slug) && !deletedEventSlugsRef.current.has(defaultEv.slug)) {
+            const localOverride = localMap.get(defaultEv.slug);
+            detailList.push(localOverride || defaultEv);
+          }
+        });
+        setEvents(detailList);
+      } catch {
+        failedResources.push('events');
       }
-      setUsers(allUsers.filter((u) => !deletedUserIdsRef.current.has(u.id)));
-    } catch {
-      failedResources.push('members');
-    }
+    })();
 
-    try {
-      const sts = await listStartupsApi(500);
-      setStartups(sts);
-      const linkLists = await Promise.all(
-        sts.map((s) => listStartupLinksApi(s.id).catch(() => [] as MockUserStartupLink[])),
-      );
-      setUserStartupLinks(linkLists.flat());
-    } catch {
-      failedResources.push('startups');
-    }
+    const fetchUsersPromise = (async () => {
+      try {
+        const allUsers: MockUser[] = [];
+        let offset = 0;
+        const batchSize = 500;
+        while (true) {
+          const batch = await listUsersApi(batchSize, offset);
+          allUsers.push(...batch);
+          if (batch.length < batchSize) break;
+          offset += batchSize;
+        }
+        setUsers(allUsers.filter((u) => !deletedUserIdsRef.current.has(u.id)));
+      } catch {
+        failedResources.push('members');
+      }
+    })();
+
+    const fetchStartupsPromise = (async () => {
+      try {
+        const sts = await listStartupsApi(500);
+        setStartups(sts);
+        const linkLists = await Promise.all(
+          sts.map((s) => listStartupLinksApi(s.id).catch(() => [] as MockUserStartupLink[])),
+        );
+        setUserStartupLinks(linkLists.flat());
+      } catch {
+        failedResources.push('startups');
+      }
+    })();
+
+    await Promise.allSettled([fetchEventsPromise, fetchUsersPromise, fetchStartupsPromise]);
 
     setBackendCatalogWarning(buildBackendCatalogWarning(failedResources));
     // Whichever resources succeeded or failed, this pass is done — mark
@@ -557,11 +568,14 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
         const user = await fetchCurrentUserApi();
         if (!cancelled) {
           setApiSessionUser(user);
+          if (user) {
+            setStoredUser(user);
+          } else {
+            setStoredUser(null);
+          }
         }
       } catch {
-        if (!cancelled) {
-          setApiSessionUser(null);
-        }
+        // Transient network error: don't clear cached user if token is still valid
       } finally {
         if (!cancelled) {
           setAuthHydrated(true);
@@ -1304,7 +1318,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   );
 
   const updateEvent = useCallback(
-    (slug: string, updates: EventMutationInput): EventDetail | null => {
+    (slug: string, updates: EventMutationInput, skipApiPatch?: boolean): EventDetail | null => {
       const existing = events.find((event) => event.slug === slug);
       if (!existing) return null;
 
@@ -1396,7 +1410,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
         // Keep the UI optimistic even if local persistence fails.
       });
 
-      if (USE_API_AUTH) {
+      if (USE_API_AUTH && !skipApiPatch) {
         const bid = backendEventIdBySlug[slug];
         if (bid) {
           const body: Record<string, unknown> = {};
@@ -1405,6 +1419,8 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
           if (updates.location !== undefined) body.location = updates.location.trim();
           if (updates.description !== undefined) body.description = updates.description.trim();
           if (updates.overview !== undefined) body.overview = updates.overview.trim();
+          if (updates.heroImage !== undefined) body.hero_image = updates.heroImage.trim();
+          if (updates.bannerImage !== undefined) body.banner_image = updates.bannerImage.trim();
           if (updates.registrationOpen !== undefined) body.registration_open = updates.registrationOpen;
           if (updates.lifecycleStatus !== undefined) body.lifecycle_status = updates.lifecycleStatus;
           if (updates.lumaUrl !== undefined) {
@@ -1413,12 +1429,19 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
           if (updates.galleryUrl !== undefined) {
             body.gallery_url = updates.galleryUrl.trim() || null;
           }
-          if (updates.venueName !== undefined || updates.venueAddress !== undefined || updates.venueDescription !== undefined) {
+          if (
+            updates.venueName !== undefined ||
+            updates.venueAddress !== undefined ||
+            updates.venueDescription !== undefined ||
+            updates.venueImage !== undefined ||
+            updates.venueMapEmbedUrl !== undefined
+          ) {
             body.venue = {
               name: updates.venueName?.trim() ?? existing.venue.name,
               address: updates.venueAddress?.trim() ?? existing.venue.address,
               description: updates.venueDescription?.trim() ?? existing.venue.description,
-              image: existing.venue.image,
+              image: updates.venueImage?.trim() ?? existing.venue.image,
+              mapEmbedUrl: updates.venueMapEmbedUrl?.trim() ?? existing.venue.mapEmbedUrl ?? '',
             };
           }
           if (updates.objectives !== undefined) {

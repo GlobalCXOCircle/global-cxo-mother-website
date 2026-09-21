@@ -439,6 +439,7 @@ const EventDetails = ({ previewEvent }: { previewEvent?: EventDetail }) => {
                   {event.galleryUrl && (() => {
                     const isInternal = event.galleryUrl.startsWith('/') ||
                       event.galleryUrl.includes('globalcxocircle.com') ||
+                      event.galleryUrl.includes('azurestaticapps.net') ||
                       event.galleryUrl.includes('global-cxo-mother-website.vercel.app');
 
                     return isInternal ? (

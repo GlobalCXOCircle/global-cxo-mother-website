@@ -7,7 +7,7 @@ import UseSticky from "@/hooks/UseSticky"
 import Arrow from "@/components/common/Arrow"
 import { useState, useEffect, useRef } from "react"
 import { fetchCurrentUserApi, logoutApi } from "@/portal/api/auth"
-import { getStoredAccessToken } from "@/portal/api/tokenStorage"
+import { getStoredAccessToken, getStoredUser, setStoredUser, setStoredAccessToken } from "@/portal/api/tokenStorage"
 import { USE_API_AUTH } from "@/portal/api/config"
 import { getMockSessionUserId, setMockSessionUserId } from "@/portal/lib/mockSession"
 import { loadMockDatabaseSnapshot } from "@/portal/lib/mockDatabase"
@@ -20,7 +20,26 @@ const Header = ({ hideSignIn = false, solidNavbar = false }: { hideSignIn?: bool
    const { sticky } = UseSticky();
    const [sidebar, setSidebar] = useState<boolean>(false);
 
-   const [authUser, setAuthUser] = useState<MockUser | null>(() => cachedAuthUser);
+   const [authUser, setAuthUser] = useState<MockUser | null>(() => {
+      if (cachedAuthUser) return cachedAuthUser;
+      if (typeof window !== "undefined") {
+         const token = getStoredAccessToken();
+         const stored = getStoredUser();
+         if (token && stored) {
+            cachedAuthUser = stored;
+            return stored;
+         }
+      }
+      return null;
+   });
+
+   const [hasStoredToken, setHasStoredToken] = useState<boolean>(() => {
+      if (typeof window !== "undefined") {
+         return !!getStoredAccessToken();
+      }
+      return false;
+   });
+
    const [menuOpen, setMenuOpen] = useState<boolean>(false);
    const menuRef = useRef<HTMLDivElement>(null);
 
@@ -33,22 +52,43 @@ const Header = ({ hideSignIn = false, solidNavbar = false }: { hideSignIn?: bool
          setAuthUser(found);
          return;
       }
-      if (!getStoredAccessToken()) {
+      const token = getStoredAccessToken();
+      setHasStoredToken(!!token);
+      if (!token) {
          cachedAuthUser = null;
+         setStoredUser(null);
          setAuthUser(null);
          return;
       }
+
+      // Immediately restore from local storage if not already populated
+      if (!authUser) {
+         const stored = getStoredUser();
+         if (stored) {
+            cachedAuthUser = stored;
+            setAuthUser(stored);
+         }
+      }
+
       let active = true;
       fetchCurrentUserApi()
          .then((user) => {
             if (!active) return;
-            cachedAuthUser = user;
-            setAuthUser(user);
+            if (user) {
+               cachedAuthUser = user;
+               setStoredUser(user);
+               setAuthUser(user);
+            } else {
+               cachedAuthUser = null;
+               setStoredUser(null);
+               setStoredAccessToken(null);
+               setAuthUser(null);
+               setHasStoredToken(false);
+            }
          })
          .catch(() => {
             if (!active) return;
-            cachedAuthUser = null;
-            setAuthUser(null);
+            // On transient network errors, keep cached user so the UI stays stable
          });
       return () => { active = false; };
    }, []);
@@ -66,7 +106,10 @@ const Header = ({ hideSignIn = false, solidNavbar = false }: { hideSignIn?: bool
    const handleSignOut = () => {
       setMenuOpen(false);
       setAuthUser(null);
+      setHasStoredToken(false);
       cachedAuthUser = null;
+      setStoredUser(null);
+      setStoredAccessToken(null);
       if (!USE_API_AUTH) {
          setMockSessionUserId(null);
          window.location.href = "/";
@@ -172,6 +215,11 @@ const Header = ({ hideSignIn = false, solidNavbar = false }: { hideSignIn?: bool
                                                    </div>
                                                 )}
                                              </div>
+                                          ) : hasStoredToken ? (
+                                             <div className="auth-pill-btn opacity-60 pointer-events-none" style={{ minWidth: '120px' }}>
+                                                <span className="auth-pill-avatar bg-slate-200 animate-pulse" />
+                                                <span className="auth-pill-name bg-slate-200 animate-pulse rounded w-16 h-3 inline-block" />
+                                             </div>
                                           ) : (
                                              <Link href="/login" className="header-signin-btn">
                                                 Sign In
@@ -194,6 +242,7 @@ const Header = ({ hideSignIn = false, solidNavbar = false }: { hideSignIn?: bool
                             sidebar={sidebar}
                             setSidebar={setSidebar}
                             authUser={authUser}
+                            hasStoredToken={hasStoredToken}
                             isElevated={isAdminOrDev}
                             onLogout={handleSignOut}
                             hideSignIn={hideSignIn}

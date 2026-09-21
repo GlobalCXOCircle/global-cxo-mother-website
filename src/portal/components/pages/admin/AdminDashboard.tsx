@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, Users, Building2, ArrowRight, Mail, Send, FileEdit, AlertTriangle, MessageCircle } from 'lucide-react';
+import { Calendar, Users, Building2, ArrowRight, Mail, Send, FileEdit, AlertTriangle, MessageCircle, Check, Eye, ExternalLink } from 'lucide-react';
 import { ActivityLogPanel } from './ActivityLogPanel';
 import {
   Card,
@@ -11,8 +11,17 @@ import {
   CardHeader,
   CardTitle,
 } from '@/portal/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/portal/components/ui/dialog';
 import { Button } from '@/portal/components/ui/button';
 import { Badge } from '@/portal/components/ui/badge';
+import { Textarea } from '@/portal/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/portal/components/ui/select';
 import FadedScroll from '@/portal/components/ui/faded-scroll';
 import { DashboardSkeleton, SkeletonBlock } from '@/portal/components/ui/admin-skeletons';
@@ -99,11 +108,48 @@ export default function AdminDashboard(): JSX.Element {
   const pendingIntents = alertCounts?.pendingIntents ?? 0;
   const pendingMemberships = alertCounts?.pendingMemberships ?? 0;
 
-  const { data: feedbackList = [] } = useQuery({
+  const [selectedFeedback, setSelectedFeedback] = useState<any | null>(null);
+  const [feedbackFilter, setFeedbackFilter] = useState<'all' | 'new' | 'reviewed'>('all');
+  const [updatingFeedbackId, setUpdatingFeedbackId] = useState<string | null>(null);
+  const [adminNoteInput, setAdminNoteInput] = useState('');
+
+  const { data: feedbackList = [], refetch: refetchFeedback } = useQuery({
     queryKey: ['admin', 'feedback'],
-    queryFn: () => apiFetch<any[]>('/admin/feedback?limit=10'),
+    queryFn: () => apiFetch<any[]>('/admin/feedback?limit=50'),
     staleTime: 30_000,
     enabled: USE_API_AUTH,
+  });
+
+  const handleUpdateFeedbackStatus = async (fbId: string, newStatus: string, adminNotes?: string) => {
+    setUpdatingFeedbackId(fbId);
+    try {
+      await apiFetch(`/admin/feedback/${fbId}`, {
+        method: 'PATCH',
+        body: {
+          status: newStatus,
+          ...(adminNotes !== undefined ? { admin_notes: adminNotes } : {}),
+        },
+      });
+      toast.success(newStatus === 'reviewed' ? 'Feedback marked as noted' : 'Feedback updated');
+      await refetchFeedback();
+      if (selectedFeedback && selectedFeedback.id === fbId) {
+        setSelectedFeedback((prev: any) =>
+          prev ? { ...prev, status: newStatus, ...(adminNotes !== undefined ? { admin_notes: adminNotes } : {}) } : null
+        );
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update feedback');
+    } finally {
+      setUpdatingFeedbackId(null);
+    }
+  };
+
+  const newFeedbackCount = feedbackList.filter((fb: any) => fb.status === 'new').length;
+  const notedFeedbackCount = feedbackList.filter((fb: any) => fb.status !== 'new').length;
+  const filteredFeedback = feedbackList.filter((fb: any) => {
+    if (feedbackFilter === 'new') return fb.status === 'new';
+    if (feedbackFilter === 'reviewed') return fb.status !== 'new';
+    return true;
   });
 
   const retryableCount = emailQueue.filter((e) => e.status !== 'sent').length;
@@ -364,39 +410,313 @@ export default function AdminDashboard(): JSX.Element {
         </Card>
       ) : null}
 
-      {/* Recent user feedback */}
+      {/* User Feedback Management */}
       {USE_API_AUTH && feedbackList.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
-              Recent User Feedback
-              <Badge className="bg-blue-100 text-blue-700">{feedbackList.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {feedbackList.slice(0, 5).map((fb: any) => (
-              <div key={fb.id} className="flex items-start gap-3 rounded-lg border p-3">
-                <Badge variant="outline" className={`text-[10px] shrink-0 ${
-                  fb.category === 'bug' ? 'bg-red-50 text-red-600 border-red-200' :
-                  fb.category === 'feature' ? 'bg-purple-50 text-purple-600 border-purple-200' :
-                  fb.category === 'question' ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                  'bg-slate-50 text-slate-600'
-                }`}>{fb.category}</Badge>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-700 line-clamp-2">{fb.message}</p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {fb.user_name || 'Anonymous'} · {fb.page_url || 'Unknown page'} · {new Date(fb.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <Badge variant="outline" className={`text-[10px] ${fb.status === 'new' ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600'}`}>
-                  {fb.status}
-                </Badge>
+        <Card id="feedback" className="mb-6 border-slate-200 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5 text-blue-600" />
+                <CardTitle className="text-base font-semibold text-slate-900">
+                  User Feedback
+                </CardTitle>
+                {newFeedbackCount > 0 ? (
+                  <Badge className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100">
+                    {newFeedbackCount} new
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-slate-600">
+                    {feedbackList.length} total
+                  </Badge>
+                )}
               </div>
-            ))}
+
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setFeedbackFilter('all')}
+                  className={`rounded px-2.5 py-1 font-medium transition-all ${
+                    feedbackFilter === 'all'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All ({feedbackList.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeedbackFilter('new')}
+                  className={`rounded px-2.5 py-1 font-medium transition-all ${
+                    feedbackFilter === 'new'
+                      ? 'bg-white text-amber-700 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Needs Review ({newFeedbackCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeedbackFilter('reviewed')}
+                  className={`rounded px-2.5 py-1 font-medium transition-all ${
+                    feedbackFilter === 'reviewed'
+                      ? 'bg-white text-emerald-700 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Noted ({notedFeedbackCount})
+                </button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
+            {filteredFeedback.length === 0 ? (
+              <div className="py-6 text-center text-sm text-slate-500">
+                No feedback found in this filter.
+              </div>
+            ) : (
+              filteredFeedback.slice(0, 8).map((fb: any) => {
+                const isNew = fb.status === 'new';
+                const isUpdating = updatingFeedbackId === fb.id;
+                return (
+                  <div
+                    key={fb.id}
+                    onClick={() => {
+                      setSelectedFeedback(fb);
+                      setAdminNoteInput(fb.admin_notes || '');
+                    }}
+                    className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border p-3.5 transition-all cursor-pointer hover:shadow-sm ${
+                      isNew
+                        ? 'border-amber-200 bg-amber-50/30 hover:bg-amber-50/60'
+                        : 'border-slate-200 bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] shrink-0 uppercase tracking-wide font-semibold mt-0.5 ${
+                          fb.category === 'bug'
+                            ? 'bg-red-50 text-red-700 border-red-200'
+                            : fb.category === 'feature'
+                            ? 'bg-purple-50 text-purple-700 border-purple-200'
+                            : fb.category === 'question'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-slate-100 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        {fb.category}
+                      </Badge>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-800 line-clamp-2 leading-relaxed">
+                          {fb.message}
+                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-400">
+                          <span className="font-medium text-slate-600">
+                            {fb.user_name || (fb.user_email ? fb.user_email.split('@')[0] : 'Anonymous')}
+                          </span>
+                          {fb.page_url && (
+                            <>
+                              <span>·</span>
+                              <span className="truncate max-w-[200px]" title={fb.page_url}>
+                                {fb.page_url}
+                              </span>
+                            </>
+                          )}
+                          <span>·</span>
+                          <span>{new Date(fb.created_at).toLocaleDateString()}</span>
+                          {fb.admin_notes && (
+                            <>
+                              <span>·</span>
+                              <span className="inline-flex items-center text-indigo-600 font-medium bg-indigo-50 px-1.5 py-0.5 rounded text-[11px]">
+                                Note: {fb.admin_notes}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      className="flex items-center gap-2 self-end sm:self-center shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Badge
+                        variant="outline"
+                        className={`text-[11px] font-medium px-2 py-0.5 ${
+                          isNew
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        }`}
+                      >
+                        {isNew ? 'Needs Review' : 'Noted'}
+                      </Badge>
+
+                      {isNew ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={isUpdating}
+                          onClick={() => handleUpdateFeedbackStatus(fb.id, 'reviewed', fb.admin_notes)}
+                          className="h-7 px-2.5 text-xs font-medium border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 gap-1"
+                        >
+                          <Check className="h-3 w-3" />
+                          Mark Noted
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={isUpdating}
+                          onClick={() => handleUpdateFeedbackStatus(fb.id, 'new', fb.admin_notes)}
+                          className="h-7 px-2 text-xs text-slate-500 hover:text-slate-800"
+                          title="Reopen as needs review"
+                        >
+                          Reopen
+                        </Button>
+                      )}
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedFeedback(fb);
+                          setAdminNoteInput(fb.admin_notes || '');
+                        }}
+                        className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900"
+                        title="View details"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </CardContent>
         </Card>
       )}
+
+      {/* Feedback Detail Modal */}
+      <Dialog
+        open={!!selectedFeedback}
+        onOpenChange={(open) => {
+          if (!open) setSelectedFeedback(null);
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-1">
+              <Badge
+                variant="outline"
+                className={`text-[10px] uppercase font-semibold ${
+                  selectedFeedback?.category === 'bug'
+                    ? 'bg-red-50 text-red-700 border-red-200'
+                    : selectedFeedback?.category === 'feature'
+                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                    : selectedFeedback?.category === 'question'
+                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                    : 'bg-slate-100 text-slate-700'
+                }`}
+              >
+                {selectedFeedback?.category}
+              </Badge>
+              <Badge
+                variant="outline"
+                className={`text-[10px] ${
+                  selectedFeedback?.status === 'new'
+                    ? 'bg-amber-100 text-amber-800 border-amber-300'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }`}
+              >
+                {selectedFeedback?.status === 'new' ? 'Needs Review' : 'Noted'}
+              </Badge>
+            </div>
+            <DialogTitle className="text-lg">User Feedback Details</DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Submitted by{' '}
+              <span className="font-medium text-slate-700">
+                {selectedFeedback?.user_name || 'Anonymous'}
+              </span>
+              {selectedFeedback?.user_email ? ` (${selectedFeedback.user_email})` : ''} on{' '}
+              {selectedFeedback?.created_at
+                ? new Date(selectedFeedback.created_at).toLocaleString()
+                : 'Unknown date'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {selectedFeedback?.page_url && (
+              <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                <span className="font-medium text-slate-700">Page:</span>
+                <a
+                  href={selectedFeedback.page_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-blue-600 hover:underline flex items-center gap-1 break-all"
+                >
+                  {selectedFeedback.page_url}
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                </a>
+              </div>
+            )}
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                Feedback Message
+              </label>
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3.5 text-sm text-slate-800 leading-relaxed whitespace-pre-wrap max-h-56 overflow-y-auto">
+                {selectedFeedback?.message}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                Admin Notes / Resolution
+              </label>
+              <Textarea
+                placeholder="Add internal notes (e.g. 'Investigated with user', 'Fixed in update', etc.)..."
+                value={adminNoteInput}
+                onChange={(e) => setAdminNoteInput(e.target.value)}
+                rows={3}
+                className="text-sm"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setSelectedFeedback(null)}
+              className="text-slate-600"
+            >
+              Close
+            </Button>
+
+            {selectedFeedback?.status === 'new' ? (
+              <Button
+                onClick={() =>
+                  handleUpdateFeedbackStatus(selectedFeedback.id, 'reviewed', adminNoteInput)
+                }
+                disabled={updatingFeedbackId === selectedFeedback?.id}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+              >
+                <Check className="h-4 w-4" />
+                Mark as Noted
+              </Button>
+            ) : (
+              <Button
+                onClick={() =>
+                  handleUpdateFeedbackStatus(selectedFeedback.id, 'reviewed', adminNoteInput)
+                }
+                disabled={updatingFeedbackId === selectedFeedback?.id}
+                className="bg-slate-900 hover:bg-slate-800 text-white gap-1.5"
+              >
+                Save Notes
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Recent events */}
       <Card>

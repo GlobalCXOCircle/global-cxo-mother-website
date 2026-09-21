@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, type FormEvent } from "react"
-
-const WEB3FORMS_ACCESS_KEY = "b6e38651-6009-4ab0-a71d-c98ddda90dfa"
+import { submitContactFormApi } from "@/portal/api/leads"
 
 const ContactForm = () => {
    const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle")
@@ -15,37 +14,44 @@ const ContactForm = () => {
 
       const form = e.currentTarget
       const formData = new FormData(form)
+      const botCheck = formData.get("botcheck") as string
+
+      // Bot trap: Silently drop if honeypot was populated
+      if (botCheck) {
+         setStatus("success")
+         form.reset()
+         return
+      }
 
       try {
-         const res = await fetch("https://api.web3forms.com/submit", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-               access_key: WEB3FORMS_ACCESS_KEY,
-               name: formData.get("user_name"),
-               email: formData.get("user_email"),
-               message: formData.get("message"),
-               subject: `New message from ${formData.get("user_name")}`,
-            }),
+         const data = await submitContactFormApi({
+            name: String(formData.get("user_name") || "").trim(),
+            email: String(formData.get("user_email") || "").trim(),
+            message: String(formData.get("message") || "").trim(),
+            subject: `New message from ${formData.get("user_name")}`,
+            source: "contact-widget",
+            botcheck: botCheck || undefined,
          })
 
-         const data = (await res.json()) as { success?: boolean; message?: string }
-
-         if (res.ok && data.success) {
+         if (data?.success) {
             setStatus("success")
             form.reset()
          } else {
             setStatus("error")
-            setErrorMsg(data.message || "Failed to send message.")
+            setErrorMsg(data?.message || "Failed to send message.")
          }
-      } catch {
+      } catch (err: any) {
          setStatus("error")
-         setErrorMsg("Email service is temporarily unavailable. Please try again shortly.")
+         setErrorMsg(err?.message || "Email service is temporarily unavailable. Please try again shortly.")
       }
    }
 
    return (
       <form onSubmit={handleSubmit} className="contact__form">
+         {/* Honeypot field for bot protection */}
+         <div style={{ position: "absolute", opacity: 0, zIndex: -1, width: 0, height: 0, overflow: "hidden", pointerEvents: "none" }} aria-hidden="true">
+            <input type="text" name="botcheck" tabIndex={-1} autoComplete="new-password" />
+         </div>
          <div className="form-grp">
             <label htmlFor="user_name">Your Name</label>
             <input id="user_name" name="user_name" type="text" placeholder="Enter your name" required />

@@ -346,7 +346,7 @@ export default function AdminNewEvent(): JSX.Element {
                 />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
-                <ImageUpload label="Venue Image" value={form.venueImage} onChange={(v) => updateField('venueImage', v)} />
+                <ImageUpload label="Venue Image" value={form.venueImage} onChange={(v) => updateField('venueImage', v)} folder="events/venues" />
                 <div className="grid gap-2">
                   <Label htmlFor="venue-map">Venue Map Embed URL</Label>
                   <Input id="venue-map" value={form.venueMapEmbedUrl} onChange={(e) => updateField('venueMapEmbedUrl', e.target.value)} placeholder="https://maps.google.com/maps?q=...&output=embed" />
@@ -360,8 +360,8 @@ export default function AdminNewEvent(): JSX.Element {
             <div className="space-y-4">
               <h2 className="font-semibold text-slate-900">Images</h2>
               <div className="grid gap-4 md:grid-cols-2">
-                <ImageUpload label="Hero Image" value={form.heroImage} onChange={(v) => updateField('heroImage', v)} />
-                <ImageUpload label="Banner Image" value={form.bannerImage} onChange={(v) => updateField('bannerImage', v)} />
+                <ImageUpload label="Hero Image" value={form.heroImage} onChange={(v) => updateField('heroImage', v)} folder="events/hero" />
+                <ImageUpload label="Banner Image" value={form.bannerImage} onChange={(v) => updateField('bannerImage', v)} folder="events/banner" />
               </div>
             </div>
 
@@ -434,7 +434,7 @@ export default function AdminNewEvent(): JSX.Element {
                     <Input placeholder="Title" value={s.title} onChange={(e) => { const next = [...speakers]; next[i] = { ...next[i], title: e.target.value }; setSpeakers(next); }} />
                     <Input placeholder="Company" value={s.company} onChange={(e) => { const next = [...speakers]; next[i] = { ...next[i], company: e.target.value }; setSpeakers(next); }} />
                   </div>
-                  <ImageUpload value={s.image} onChange={(v) => { const next = [...speakers]; next[i] = { ...next[i], image: v }; setSpeakers(next); }} placeholder="Speaker photo" previewHeight="h-16" />
+                  <ImageUpload value={s.image} onChange={(v) => { const next = [...speakers]; next[i] = { ...next[i], image: v }; setSpeakers(next); }} placeholder="Speaker photo" previewHeight="h-16" folder="events/speakers" />
                 </div>
               ))}
               {speakers.length === 0 && <p className="text-sm text-slate-400">No speakers added yet.</p>}
@@ -457,7 +457,7 @@ export default function AdminNewEvent(): JSX.Element {
                     <Input placeholder="Website" value={s.website ?? ''} onChange={(e) => { const next = [...sponsors]; next[i] = { ...next[i], website: e.target.value }; setSponsors(next); }} />
                     <Button type="button" variant="ghost" size="sm" onClick={() => setSponsors((p) => p.filter((_, j) => j !== i))}><Trash2 className="h-3 w-3 text-red-500" /></Button>
                   </div>
-                  <ImageUpload value={s.logo} onChange={(v) => { const next = [...sponsors]; next[i] = { ...next[i], logo: v }; setSponsors(next); }} placeholder="Sponsor logo" previewHeight="h-12" />
+                  <ImageUpload value={s.logo} onChange={(v) => { const next = [...sponsors]; next[i] = { ...next[i], logo: v }; setSponsors(next); }} placeholder="Sponsor logo" previewHeight="h-12" folder="events/sponsors" />
                 </div>
               ))}
               {sponsors.length === 0 && <p className="text-sm text-slate-400">No sponsors added yet.</p>}

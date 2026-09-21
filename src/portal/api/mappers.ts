@@ -178,12 +178,22 @@ function mapItineraryJson(raw: unknown[] | null): ItineraryItem[] {
   });
 }
 
-function mapVenueFromApi(venue: Record<string, unknown>, fallbackLocation: string, heroFallback: string) {
+function mapVenueFromApi(venue: Record<string, unknown> | undefined, fallbackLocation: string, heroFallback: string) {
+  if (!venue || typeof venue !== 'object') {
+    return {
+      name: 'Venue',
+      address: fallbackLocation,
+      description: '',
+      image: heroFallback,
+      mapEmbedUrl: '',
+    };
+  }
   return {
     name: String(venue.name ?? 'Venue'),
     address: String(venue.address ?? fallbackLocation),
     description: String(venue.description ?? ''),
-    image: String(venue.image ?? heroFallback),
+    image: String(venue.image || heroFallback),
+    mapEmbedUrl: String(venue.mapEmbedUrl ?? venue.map_embed_url ?? ''),
   };
 }
 

@@ -9,7 +9,7 @@ const poppins = Poppins({
   weight: ['300', '400', '500', '600', '700', '800',],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://global-cxo-mother-website.vercel.app");
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://globalcxocircle.com");
 
 export const metadata = {
   metadataBase: new URL(siteUrl),

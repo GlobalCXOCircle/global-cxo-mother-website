@@ -1,3 +1,5 @@
+import ProtectedEmail from "@/components/common/ProtectedEmail";
+
 const PrivacyPolicyArea = () => {
   const lastUpdated = "May 5, 2026";
 
@@ -15,7 +17,7 @@ const PrivacyPolicyArea = () => {
             <div style={{ fontSize: "16px", lineHeight: 1.8, color: "#444" }}>
 
               <h2 style={{ fontSize: "22px", fontWeight: 700, color: "#1A1A1A", marginTop: "40px", marginBottom: "12px" }}>1. Who We Are</h2>
-              <p>Global CXO Circle ("we", "us", or "our") is an exclusive ecosystem for executive alignment headquartered in San Francisco, CA. We operate this website to provide information and manage our membership network. For questions about this policy, please contact us at <a href="mailto:contactus@globalcxocircle.com" style={{ color: "var(--tg-theme-primary)" }}>contactus@globalcxocircle.com</a>.</p>
+              <p>Global CXO Circle ("we", "us", or "our") is an exclusive ecosystem for executive alignment headquartered in San Francisco, CA. We operate this website to provide information and manage our membership network. For questions about this policy, please contact us at <ProtectedEmail user="contactus" domain="globalcxocircle.com" style={{ color: "var(--tg-theme-primary)" }} />.</p>
 
               <h2 style={{ fontSize: "22px", fontWeight: 700, color: "#1A1A1A", marginTop: "40px", marginBottom: "12px" }}>2. Information We Collect</h2>
               <p>We may collect the following categories of information:</p>
@@ -42,14 +44,14 @@ const PrivacyPolicyArea = () => {
               <p>We may share your data with trusted third-party service providers (e.g., event platforms, email services) solely for the purpose of operating our ecosystem. These providers are contractually obligated to keep your data secure and confidential.</p>
 
               <h2 style={{ fontSize: "22px", fontWeight: 700, color: "#1A1A1A", marginTop: "40px", marginBottom: "12px" }}>6. Your Rights</h2>
-              <p>Depending on your jurisdiction, you may have the right to access, correct, or delete any personal data we hold about you. To exercise any of these rights, email us at <a href="mailto:contactus@globalcxocircle.com" style={{ color: "var(--tg-theme-primary)" }}>contactus@globalcxocircle.com</a>.</p>
+              <p>Depending on your jurisdiction, you may have the right to access, correct, or delete any personal data we hold about you. To exercise any of these rights, email us at <ProtectedEmail user="contactus" domain="globalcxocircle.com" style={{ color: "var(--tg-theme-primary)" }} />.</p>
 
               <h2 style={{ fontSize: "22px", fontWeight: 700, color: "#1A1A1A", marginTop: "40px", marginBottom: "12px" }}>7. Contact Us</h2>
               <p>If you have any questions or concerns about this Privacy Policy, please contact:</p>
               <address style={{ fontStyle: "normal", background: "#f8f8f8", borderRadius: "10px", padding: "20px 24px", marginTop: "12px", borderLeft: "4px solid var(--tg-theme-primary)" }}>
                 <strong>Global CXO Circle</strong><br />
                 San Francisco, CA<br />
-                Email: <a href="mailto:contactus@globalcxocircle.com" style={{ color: "var(--tg-theme-primary)" }}>contactus@globalcxocircle.com</a>
+                Email: <ProtectedEmail user="contactus" domain="globalcxocircle.com" style={{ color: "var(--tg-theme-primary)" }} />
               </address>
 
             </div>
