@@ -442,91 +442,99 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
     }
     const failedResources: string[] = [];
 
-    try {
-      const rawEvents = await listEventsApi(200);
-      const demoSalon = rawEvents.find((e) => e.slug === 'gcio-demo-salon-2026');
-      if (demoSalon) {
-        void deleteEventApi(String(demoSalon.id)).catch(() => {});
-      }
-      const idBySlug: Record<string, string> = {};
-      rawEvents.forEach((e) => {
-        idBySlug[e.slug] = String(e.id);
-      });
-      setBackendEventIdBySlug(idBySlug);
-
-      const vis: EventVisibilityMap = {};
-      rawEvents.forEach((e) => {
-        vis[e.slug] = mapVisibilityFromApi(e.visibility_setting);
-      });
-      setEventVisibility(vis);
-
-      const regChunks = await Promise.all(
-        rawEvents.map((e) =>
-          listEventRegistrationsApi(String(e.id), e.slug).catch(() => [] as MockEventRegistration[]),
-        ),
-      );
-      const flatRegs = regChunks.flat();
-      setRegistrations(flatRegs);
-
-      const countBySlug = new Map<string, number>();
-      flatRegs.forEach((r) => {
-        countBySlug.set(r.eventId, (countBySlug.get(r.eventId) ?? 0) + 1);
-      });
-      const localSnap = loadMockDatabaseSnapshot().events;
-      const localMap = new Map(localSnap.map((e) => [e.slug, e]));
-
-      const detailList = rawEvents
-        .filter((e) => !deletedEventSlugsRef.current.has(e.slug))
-        .map((e) => {
-          const mapped = mapApiEventToEventDetail(e, countBySlug.get(e.slug) ?? 0);
-          const localOverride = localMap.get(e.slug);
-          if (localOverride) {
-            return {
-              ...mapped,
-              lifecycleStatus: localOverride.lifecycleStatus ?? mapped.lifecycleStatus,
-              registrationOpen: localOverride.registrationOpen ?? mapped.registrationOpen,
-            };
-          }
-          return mapped;
-        });
-
-      const existingSlugs = new Set(detailList.map((e) => e.slug));
-      eventsData.forEach((defaultEv) => {
-        if (!existingSlugs.has(defaultEv.slug) && !deletedEventSlugsRef.current.has(defaultEv.slug)) {
-          const localOverride = localMap.get(defaultEv.slug);
-          detailList.push(localOverride || defaultEv);
+    const fetchEventsPromise = (async () => {
+      try {
+        const rawEvents = await listEventsApi(200);
+        const demoSalon = rawEvents.find((e) => e.slug === 'gcio-demo-salon-2026');
+        if (demoSalon) {
+          void deleteEventApi(String(demoSalon.id)).catch(() => {});
         }
-      });
-      setEvents(detailList);
-    } catch {
-      failedResources.push('events');
-    }
+        const idBySlug: Record<string, string> = {};
+        rawEvents.forEach((e) => {
+          idBySlug[e.slug] = String(e.id);
+        });
+        setBackendEventIdBySlug(idBySlug);
 
-    try {
-      const allUsers: MockUser[] = [];
-      let offset = 0;
-      const batchSize = 500;
-      while (true) {
-        const batch = await listUsersApi(batchSize, offset);
-        allUsers.push(...batch);
-        if (batch.length < batchSize) break;
-        offset += batchSize;
+        const vis: EventVisibilityMap = {};
+        rawEvents.forEach((e) => {
+          vis[e.slug] = mapVisibilityFromApi(e.visibility_setting);
+        });
+        setEventVisibility(vis);
+
+        const regChunks = await Promise.all(
+          rawEvents.map((e) =>
+            listEventRegistrationsApi(String(e.id), e.slug).catch(() => [] as MockEventRegistration[]),
+          ),
+        );
+        const flatRegs = regChunks.flat();
+        setRegistrations(flatRegs);
+
+        const countBySlug = new Map<string, number>();
+        flatRegs.forEach((r) => {
+          countBySlug.set(r.eventId, (countBySlug.get(r.eventId) ?? 0) + 1);
+        });
+        const localSnap = loadMockDatabaseSnapshot().events;
+        const localMap = new Map(localSnap.map((e) => [e.slug, e]));
+
+        const detailList = rawEvents
+          .filter((e) => !deletedEventSlugsRef.current.has(e.slug))
+          .map((e) => {
+            const mapped = mapApiEventToEventDetail(e, countBySlug.get(e.slug) ?? 0);
+            const localOverride = localMap.get(e.slug);
+            if (localOverride) {
+              return {
+                ...mapped,
+                lifecycleStatus: localOverride.lifecycleStatus ?? mapped.lifecycleStatus,
+                registrationOpen: localOverride.registrationOpen ?? mapped.registrationOpen,
+              };
+            }
+            return mapped;
+          });
+
+        const existingSlugs = new Set(detailList.map((e) => e.slug));
+        eventsData.forEach((defaultEv) => {
+          if (!existingSlugs.has(defaultEv.slug) && !deletedEventSlugsRef.current.has(defaultEv.slug)) {
+            const localOverride = localMap.get(defaultEv.slug);
+            detailList.push(localOverride || defaultEv);
+          }
+        });
+        setEvents(detailList);
+      } catch {
+        failedResources.push('events');
       }
-      setUsers(allUsers.filter((u) => !deletedUserIdsRef.current.has(u.id)));
-    } catch {
-      failedResources.push('members');
-    }
+    })();
 
-    try {
-      const sts = await listStartupsApi(500);
-      setStartups(sts);
-      const linkLists = await Promise.all(
-        sts.map((s) => listStartupLinksApi(s.id).catch(() => [] as MockUserStartupLink[])),
-      );
-      setUserStartupLinks(linkLists.flat());
-    } catch {
-      failedResources.push('startups');
-    }
+    const fetchUsersPromise = (async () => {
+      try {
+        const allUsers: MockUser[] = [];
+        let offset = 0;
+        const batchSize = 500;
+        while (true) {
+          const batch = await listUsersApi(batchSize, offset);
+          allUsers.push(...batch);
+          if (batch.length < batchSize) break;
+          offset += batchSize;
+        }
+        setUsers(allUsers.filter((u) => !deletedUserIdsRef.current.has(u.id)));
+      } catch {
+        failedResources.push('members');
+      }
+    })();
+
+    const fetchStartupsPromise = (async () => {
+      try {
+        const sts = await listStartupsApi(500);
+        setStartups(sts);
+        const linkLists = await Promise.all(
+          sts.map((s) => listStartupLinksApi(s.id).catch(() => [] as MockUserStartupLink[])),
+        );
+        setUserStartupLinks(linkLists.flat());
+      } catch {
+        failedResources.push('startups');
+      }
+    })();
+
+    await Promise.allSettled([fetchEventsPromise, fetchUsersPromise, fetchStartupsPromise]);
 
     setBackendCatalogWarning(buildBackendCatalogWarning(failedResources));
     // Whichever resources succeeded or failed, this pass is done — mark
