@@ -39,3 +39,23 @@ export async function submitOptInFormApi(payload: OptInSubmissionPayload) {
     skipAuthHeader: true,
   });
 }
+
+export interface NominateSubmissionPayload {
+  nominee_name: string;
+  nominee_role_company: string;
+  nominee_linkedin?: string;
+  award_category: string;
+  reasons: string;
+  nominator_name: string;
+  nominator_email: string;
+  relationship?: string;
+  botcheck?: string;
+}
+
+export async function submitNominateFormApi(payload: NominateSubmissionPayload) {
+  return apiFetch<{ success: boolean; message: string; id?: string }>('/leads/nominate', {
+    method: 'POST',
+    body: payload,
+    skipAuthHeader: true,
+  });
+}

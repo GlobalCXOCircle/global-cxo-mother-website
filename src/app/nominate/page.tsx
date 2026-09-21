@@ -5,7 +5,7 @@ import Header from "@/layouts/headers/Header"
 import Footer from "@/layouts/footers/Footer"
 import AnimateOnScroll from "@/components/ui/AnimateOnScroll"
 import awardsData from "@/data/AwardsData"
-import { submitContactFormApi } from "@/portal/api/leads"
+import { submitNominateFormApi } from "@/portal/api/leads"
 
 const labelStyle: CSSProperties = { display: "block", fontSize: "13px", fontWeight: 600, color: "var(--tg-heading-color)", marginBottom: "5px" }
 const inputStyle: CSSProperties = {
@@ -59,20 +59,15 @@ const NominatePage = () => {
         setStatus("sending")
         setErrorMsg("")
         try {
-            const data = await submitContactFormApi({
-                name: yourName.trim(),
-                email: yourEmail.trim(),
-                subject: `New Award Nomination: ${nomineeName.trim()}`,
-                message: reasons.trim(),
-                source: "nominate",
-                metadata_json: {
-                    nominee_name: nomineeName.trim(),
-                    nominee_role_company: nomineeRole.trim(),
-                    nominee_linkedin: nomineeLinkedin.trim() || "Not provided",
-                    award_category: category,
-                    relationship_to_nominee: relationship.trim() || "Not provided",
-                    reasons_to_nominate: reasons.trim(),
-                },
+            const data = await submitNominateFormApi({
+                nominee_name: nomineeName.trim(),
+                nominee_role_company: nomineeRole.trim(),
+                ...(nomineeLinkedin.trim() ? { nominee_linkedin: nomineeLinkedin.trim() } : {}),
+                award_category: category,
+                reasons: reasons.trim(),
+                nominator_name: yourName.trim(),
+                nominator_email: yourEmail.trim(),
+                ...(relationship.trim() ? { relationship: relationship.trim() } : {}),
             })
             if (data?.success) {
                 setStatus("success")
