@@ -1,6 +1,6 @@
 import { apiFetch } from '@/portal/api/client';
 import { ApiError } from '@/portal/api/errors';
-import { setStoredAccessToken } from '@/portal/api/tokenStorage';
+import { setStoredAccessToken, setStoredUser } from '@/portal/api/tokenStorage';
 import { mapApiUserToMockUser, type ApiLoginResponseJson, type ApiUserJson } from '@/portal/types/auth';
 import type { ApiTokenPairJson } from '@/portal/api/types';
 import type { MockUser, UserTier } from '@/portal/data/mock/types';
@@ -15,9 +15,15 @@ const ADMIN_IMPERSONATE_PATH = '/auth/admin/impersonate';
 export async function fetchCurrentUserApi(): Promise<MockUser | null> {
   try {
     const raw = await apiFetch<ApiUserJson>(ME_PATH, { method: 'GET' });
-    return mapApiUserToMockUser(raw);
+    const user = mapApiUserToMockUser(raw);
+    if (user) {
+      setStoredUser(user);
+    }
+    return user;
   } catch (err: unknown) {
     if (err instanceof ApiError && (err.status === 401 || err.status === 404)) {
+      setStoredAccessToken(null);
+      setStoredUser(null);
       return null;
     }
     throw err;
@@ -71,13 +77,16 @@ export async function loginWithPasswordApi(email: string, password: string): Pro
   }
 
   if ('user' in res && res.user) {
-    return mapApiUserToMockUser(res.user as ApiUserJson);
+    const u = mapApiUserToMockUser(res.user as ApiUserJson);
+    setStoredUser(u);
+    return u;
   }
 
   const me = await fetchCurrentUserApi();
   if (!me) {
     throw new Error('Login succeeded but user payload was missing.');
   }
+  setStoredUser(me);
   return me;
 }
 
@@ -94,11 +103,14 @@ export async function login2faApi(twofaToken: string, code: string): Promise<Moc
   }
 
   if ('user' in res && res.user) {
-    return mapApiUserToMockUser(res.user as ApiUserJson);
+    const u = mapApiUserToMockUser(res.user as ApiUserJson);
+    setStoredUser(u);
+    return u;
   }
 
   const me = await fetchCurrentUserApi();
   if (!me) throw new Error('2FA login succeeded but user payload was missing.');
+  setStoredUser(me);
   return me;
 }
 
@@ -122,14 +134,17 @@ export async function verifyLoginTokenApi(token: string): Promise<MockUser> {
     setStoredAccessToken(res.access_token);
   }
   if ('user' in res && res.user) {
-    return mapApiUserToMockUser(res.user as ApiUserJson);
+    const u = mapApiUserToMockUser(res.user as ApiUserJson);
+    setStoredUser(u);
+    return u;
   }
   const me = await fetchCurrentUserApi();
   if (!me) throw new Error('Verification succeeded but user payload was missing.');
+  setStoredUser(me);
   return me;
 }
 
-/** Verify an 8-digit login code. Returns full session. */
+/** Verify a 6-digit login code. Returns full session. */
 export async function verifyCodeApi(email: string, code: string): Promise<MockUser> {
   const res = await apiFetch<ApiLoginResponseJson>('/auth/verify-code', {
     method: 'POST',
@@ -140,26 +155,25 @@ export async function verifyCodeApi(email: string, code: string): Promise<MockUs
     setStoredAccessToken(res.access_token);
   }
   if ('user' in res && res.user) {
-    return mapApiUserToMockUser(res.user as ApiUserJson);
+    const u = mapApiUserToMockUser(res.user as ApiUserJson);
+    setStoredUser(u);
+    return u;
   }
   const me = await fetchCurrentUserApi();
   if (!me) throw new Error('Verification succeeded but user payload was missing.');
+  setStoredUser(me);
   return me;
 }
 
 export async function logoutApi(): Promise<void> {
   try {
-    // Fire the server-side logout but don't wait for it — a slow/unreachable
-    // backend shouldn't delay the user actually being logged out on this
-    // device. apiFetch reads the current access token synchronously (before
-    // its first `await`) to build the Authorization header, so the request
-    // is still properly authenticated even though we clear that token on the
-    // very next line, before the network response comes back.
-    void apiFetch<unknown>(LOGOUT_PATH, { method: 'POST' }).catch(() => {
-      // Best-effort server-side revocation; local logout already happened.
-    });
+    setStoredAccessToken(null);
+    setStoredUser(null);
+    // Fire the server-side logout but don't wait for it
+    void apiFetch<unknown>(LOGOUT_PATH, { method: 'POST' }).catch(() => {});
   } finally {
     setStoredAccessToken(null);
+    setStoredUser(null);
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem('gcio_proxy_admin_id');
       sessionStorage.removeItem('gcio_proxy_admin_token');

@@ -8,6 +8,7 @@ interface MobileSidebarProps {
    sidebar: boolean;
    setSidebar: (sidebar: boolean) => void;
    authUser?: MockUser | null;
+   hasStoredToken?: boolean;
    isElevated?: boolean;
    onLogout?: () => void;
    hideSignIn?: boolean;
@@ -17,6 +18,7 @@ const MobileSidebar = ({
    sidebar,
    setSidebar,
    authUser = null,
+   hasStoredToken = false,
    isElevated = false,
    onLogout,
    hideSignIn = false,
@@ -98,6 +100,13 @@ const MobileSidebar = ({
                               </li>
                            </ul>
                         </>
+                     ) : hasStoredToken ? (
+                        <div className="tgmobile__user opacity-60">
+                           <span className="tgmobile__avatar bg-slate-200 animate-pulse" />
+                           <span className="tgmobile__user-meta">
+                              <span className="tgmobile__user-name bg-slate-200 animate-pulse w-24 h-3.5 rounded inline-block" />
+                           </span>
+                        </div>
                      ) : (
                         <Link href="/login" className="tgmobile__signin" onClick={close}>Sign in</Link>
                      )}

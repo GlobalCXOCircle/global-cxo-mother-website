@@ -72,12 +72,12 @@ const Login: React.FC = () => {
     }
   };
 
-  // Single field: strip anything non-digit, cap at 8, auto-submit once full.
+  // Single field: strip anything non-digit, cap at 6, auto-submit once full.
   const handleCodeChange = (raw: string) => {
-    const digits = raw.replace(/\D/g, '').slice(0, 8);
+    const digits = raw.replace(/\D/g, '').slice(0, 6);
     setCode(digits);
     setCodeError('');
-    if (digits.length === 8) {
+    if (digits.length === 6) {
       void handleCodeSubmit(digits);
     }
   };
@@ -85,8 +85,8 @@ const Login: React.FC = () => {
   // Step 2: Submit code → verify → login
   const handleCodeSubmit = async (value?: string): Promise<void> => {
     const digits = value ?? code;
-    if (digits.length !== 8) {
-      setCodeError('Please enter all 8 digits.');
+    if (digits.length !== 6) {
+      setCodeError('Please enter all 6 digits.');
       return;
     }
     setIsLoading(true);
@@ -223,7 +223,7 @@ const Login: React.FC = () => {
               </>
             )}
 
-            {/* ── Screen: 8-Digit Code Entry ── */}
+            {/* ── Screen: 6-Digit Code Entry ── */}
             {screen === 'code' && (
               <>
                 <div className="text-center mb-6">
@@ -232,7 +232,7 @@ const Login: React.FC = () => {
                   </div>
                   <h1 className="text-2xl font-bold text-navy-900">Enter your code</h1>
                   <p className="text-sm text-navy-500 mt-1">
-                    We sent an 8-digit code to <strong className="text-navy-700">{email}</strong>
+                    We sent a 6-digit code to <strong className="text-navy-700">{email}</strong>
                   </p>
                 </div>
 
@@ -242,7 +242,7 @@ const Login: React.FC = () => {
                     type="text"
                     inputMode="numeric"
                     autoComplete="one-time-code"
-                    maxLength={8}
+                    maxLength={6}
                     value={code}
                     onChange={(e) => handleCodeChange(e.target.value)}
                     className={`h-12 rounded-xl border-navy-200 bg-white text-center text-lg font-bold tracking-[0.3em] text-navy-900 focus-visible:ring-blue-500 focus-visible:border-blue-400 ${
@@ -257,7 +257,7 @@ const Login: React.FC = () => {
 
                 <Button
                   onClick={() => handleCodeSubmit()}
-                  disabled={isLoading || code.length !== 8}
+                  disabled={isLoading || code.length !== 6}
                   className="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold text-sm shadow-lg shadow-blue-500/25 transition-all"
                   size="lg"
                 >

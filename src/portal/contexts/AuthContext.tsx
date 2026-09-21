@@ -55,7 +55,7 @@ import {
 import { createStartupApi, listStartupLinksApi, listStartupsApi, patchStartupApi } from '@/portal/api/startups';
 import { adminCreateUserApi, deleteUserApi, listUsersApi, patchUserApi, type PatchUserBody } from '@/portal/api/users';
 import { ApiError } from '@/portal/api/errors';
-import { getStoredAccessToken, setStoredAccessToken } from '@/portal/api/tokenStorage';
+import { getStoredAccessToken, setStoredAccessToken, getStoredUser, setStoredUser } from '@/portal/api/tokenStorage';
 import { getMockSessionUserId, setMockSessionUserId } from '@/portal/lib/mockSession';
 import { loadMockDatabaseSnapshot, persistMockDatabaseSnapshot } from '@/portal/lib/mockDatabase';
 import { toast } from 'sonner';
@@ -395,7 +395,10 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   const [mockSessionUserId, setMockSessionUserIdState] = useState<string | null>(() =>
     USE_API_AUTH ? null : getMockSessionUserId(),
   );
-  const [apiSessionUser, setApiSessionUser] = useState<MockUser | null>(null);
+  const [apiSessionUser, setApiSessionUser] = useState<MockUser | null>(() => {
+    if (!USE_API_AUTH) return null;
+    return getStoredAccessToken() ? getStoredUser() : null;
+  });
   const [authHydrated, setAuthHydrated] = useState<boolean>(() => !USE_API_AUTH);
   // Mock mode has its data available synchronously from `initialSnapshot`,
   // so the catalog is already "hydrated" on mount. Live mode starts as
@@ -565,11 +568,14 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
         const user = await fetchCurrentUserApi();
         if (!cancelled) {
           setApiSessionUser(user);
+          if (user) {
+            setStoredUser(user);
+          } else {
+            setStoredUser(null);
+          }
         }
       } catch {
-        if (!cancelled) {
-          setApiSessionUser(null);
-        }
+        // Transient network error: don't clear cached user if token is still valid
       } finally {
         if (!cancelled) {
           setAuthHydrated(true);
