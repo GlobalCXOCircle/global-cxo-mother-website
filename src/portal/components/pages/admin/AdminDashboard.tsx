@@ -412,7 +412,7 @@ export default function AdminDashboard(): JSX.Element {
 
       {/* User Feedback Management */}
       {USE_API_AUTH && feedbackList.length > 0 && (
-        <Card className="mb-6 border-slate-200 shadow-sm">
+        <Card id="feedback" className="mb-6 border-slate-200 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
